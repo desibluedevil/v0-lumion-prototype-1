@@ -2,9 +2,8 @@
 
 import Image from "next/image"
 import { ArrowRight } from "lucide-react"
-import MiaPanel from "./MiaPanel"
+import MiaPanel, { focusMia } from "./MiaPanel"
 import { openApplyModal } from "./ApplyModal"
-import { focusMia } from "./MiaPanel"
 
 export default function Hero() {
   return (

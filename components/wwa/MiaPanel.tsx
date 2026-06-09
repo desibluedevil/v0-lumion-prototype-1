@@ -279,10 +279,10 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     if (stepIndex === 0) return
     const prevStep = stepIndex - 1
     const prevAnswers = answers.slice(0, prevStep)
-    // When Back is pressed, optionsVisible is true — the last message is the
-    // current Mia question. The user has NOT yet answered, so we only drop 1
-    // message (the Mia question), not 2.
-    setMessages((prev) => prev.slice(0, prev.length - 1))
+    // When Back is pressed, optionsVisible is true — the last 2 messages are
+    // [prev user answer, current Mia question]. Remove both so the chat is
+    // clean when the user re-answers the previous question.
+    setMessages((prev) => prev.slice(0, prev.length - 2))
     setAnswers(prevAnswers)
     setStepIndex(prevStep)
     setOptionsVisible(true)
@@ -736,7 +736,7 @@ function FitSummaryCard({
       </div>
 
       <p className="text-[11px] text-muted-foreground/70 leading-relaxed px-1">
-        This is a fit check, not an admissions decision. This is a suggested starting point based on your answers.
+        This is a fit check, not an admissions decision — a suggested starting point based on your answers.
       </p>
 
       <MiaBubble text="Want me to send this to an enrollment advisor? They can help with financing, housing, next start dates, and whether WWA is the right move." />
@@ -773,7 +773,7 @@ function FitSummaryCard({
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────��───────────
+// ─── Student Confirmation ─────────────────────────────────────────��─────────���─
 
 function StudentConfirmation({
   lead,
@@ -815,7 +815,7 @@ function StudentConfirmation({
             {"You're all set."}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            An enrollment advisor will reach out with your fit summary and next steps. An advisor can confirm details and help you decide the right next step.
+            An enrollment advisor will reach out with your fit summary. They can confirm details, answer questions, and help you decide on the right next step.
           </p>
         </div>
       </div>
@@ -1089,6 +1089,7 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
             onClick={onReset}
             className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
             title="Start over"
+            aria-label="Start over"
           >
             <RotateCcw size={11} />
           </button>
