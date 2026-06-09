@@ -194,7 +194,7 @@ export default function Programs() {
                     Apply Now
                   </button>
                   <button
-                    onClick={() => focusMia(prog.name)}
+                    onClick={() => focusMia({ programName: prog.name, autoStart: true })}
                     className="w-full py-3 border-2 border-black group-hover:border-white/40 text-black group-hover:text-white text-xs font-black tracking-[0.18em] uppercase hover:bg-primary hover:!text-primary-foreground hover:!border-primary transition-colors duration-300 flex items-center justify-center gap-2"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
@@ -214,14 +214,14 @@ export default function Programs() {
           <span>Financial aid available for qualified applicants.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <button
-            onClick={() => focusMia()}
+            onClick={() => focusMia({ jumpToConcern: true, prefillConcern: "Cost — can I afford it?" })}
             className="text-primary hover:underline font-semibold"
           >
             Ask Mia about financing →
           </button>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <button
-            onClick={() => focusMia()}
+            onClick={() => focusMia({ autoStart: true })}
             className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors font-semibold"
           >
             Not sure which program?

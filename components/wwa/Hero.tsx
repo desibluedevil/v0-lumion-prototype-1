@@ -73,7 +73,7 @@ export default function Hero() {
               <ArrowRight size={15} />
             </button>
             <button
-              onClick={() => focusMia()}
+              onClick={() => focusMia({ autoStart: true })}
               className="px-8 py-3.5 border border-foreground/40 text-sm font-black tracking-widest uppercase text-foreground hover:border-foreground hover:bg-foreground/10 transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
@@ -85,7 +85,7 @@ export default function Hero() {
           <div className="pt-1 flex items-center gap-3">
             <div className="h-px w-8 bg-primary/60" />
             <button
-              onClick={() => focusMia()}
+              onClick={() => focusMia({ autoStart: true })}
               className="text-xs font-black tracking-[0.2em] uppercase text-primary hover:text-primary/80 transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >

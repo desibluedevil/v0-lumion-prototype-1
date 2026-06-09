@@ -168,18 +168,42 @@ function buildConversationSummary(answers: string[], program: { name: string }):
 }
 
 // ─── Focus event bus ──────────────────────────────────────────────────────────
-// Any component can call focusMia(programName?) to scroll to and optionally
-// pre-seed the Mia panel with a program context, without prop drilling.
+// Any component can call focusMia(intent) to open / preload the Mia panel.
+//
+// intent.programName  — pre-seeds the program context (used by program cards)
+// intent.autoStart    — immediately starts the flow from step 0
+// intent.jumpToConcern — skips straight to the Concern step, optionally with
+//                        a pre-selected answer (used by "Ask about financing")
 
-type FocusMiaListener = (programName?: string) => void
-const focusMiaListeners = new Set<FocusMiaListener>()
-
-export function focusMia(programName?: string) {
-  // Panel is now a fixed overlay — just notify listeners; no scroll needed.
-  focusMiaListeners.forEach((fn) => fn(programName))
+export interface FocusMiaIntent {
+  programName?: string
+  autoStart?: boolean
+  jumpToConcern?: boolean
+  prefillConcern?: string
 }
 
-// ─── Types ─���───────────���──────────────────────────────────────────────────────
+type FocusMiaListener = (intent: FocusMiaIntent) => void
+const focusMiaListeners = new Set<FocusMiaListener>()
+
+// revealMia — separate bus so FloatingMia can re-open the panel from any CTA
+type RevealMiaListener = () => void
+const revealMiaListeners = new Set<RevealMiaListener>()
+export function revealMia() {
+  revealMiaListeners.forEach((fn) => fn())
+}
+export function onRevealMia(fn: RevealMiaListener) {
+  revealMiaListeners.add(fn)
+  return () => revealMiaListeners.delete(fn)
+}
+
+export function focusMia(intent: FocusMiaIntent = {}) {
+  // Always re-open the panel first (if hidden on desktop or mobile)
+  revealMia()
+  // Then notify panel listeners with the intent
+  focusMiaListeners.forEach((fn) => fn(intent))
+}
+
+// ─── Types ─�����───────────���──────────────────────────────────────────────────────
 
 type Message = { role: "mia" | "user"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
@@ -220,16 +244,79 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
   // Register this panel as a focusMia listener
   useEffect(() => {
-    const handler: FocusMiaListener = (name) => {
-      setProgramContext(name ?? null)
-      setPhase((prev) => {
-        if (prev === "idle") return "idle"
-        return prev
-      })
+    const handler: FocusMiaListener = (intent) => {
+      const { programName, autoStart, jumpToConcern, prefillConcern } = intent
+
+      if (programName) setProgramContext(programName)
+
+      if (jumpToConcern) {
+        // Jump directly to the Concern step, optionally pre-selecting an answer
+        setPhase("flow")
+        setStepIndex(3)
+        setAnswers([])
+        setOptionsVisible(false)
+        setGroundedReady(false)
+        setSubmitted(false)
+
+        // Build a condensed message thread leading up to the Concern question
+        const intro: Message[] = [
+          { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
+          { role: "mia", text: STEPS[3].question },
+        ]
+
+        if (prefillConcern) {
+          // Pre-select the concern answer and immediately run through grounded response
+          const resp = CONCERN_RESPONSES[prefillConcern]
+          const responseText = resp
+            ? `${resp.headline}\n\n${resp.body}`
+            : "That's a fair concern. An advisor can walk you through specifics."
+          const bridgeText =
+            "Based on what you've told me, I can pull up your fit summary — which program matches, what it costs, and what to expect. Ready?"
+
+          setMessages([
+            ...intro,
+            { role: "user", text: prefillConcern },
+          ])
+          setAnswers([prefillConcern])
+          setPhase("grounded")
+          setTimeout(() => {
+            setMessages((prev) => [...prev, { role: "mia", text: responseText }])
+            setTimeout(() => {
+              setMessages((prev) => [...prev, { role: "mia", text: bridgeText }])
+              setGroundedReady(true)
+            }, 700)
+          }, 300)
+        } else {
+          setMessages(intro)
+          setOptionsVisible(true)
+        }
+        return
+      }
+
+      if (autoStart) {
+        // Start the flow fresh from step 0
+        setPhase("flow")
+        setStepIndex(0)
+        setAnswers([])
+        setOptionsVisible(false)
+        setGroundedReady(false)
+        setSubmitted(false)
+        setMessages([
+          { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
+        ])
+        setTimeout(() => {
+          setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
+          setOptionsVisible(true)
+        }, 400)
+        return
+      }
+
+      // Default: just set context; if idle stay idle (user clicks Start themselves)
+      setPhase((prev) => prev)
     }
     focusMiaListeners.add(handler)
     return () => { focusMiaListeners.delete(handler) }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [, experience, timeline, concern] = answers
   const program = recommendProgram(experience ?? "", programContext)

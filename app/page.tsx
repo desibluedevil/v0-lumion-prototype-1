@@ -9,7 +9,7 @@ import Programs from "@/components/wwa/Programs"
 import MiaSection from "@/components/wwa/MiaSection"
 import Footer from "@/components/wwa/Footer"
 import ApplyModal from "@/components/wwa/ApplyModal"
-import MiaPanel from "@/components/wwa/MiaPanel"
+import MiaPanel, { onRevealMia } from "@/components/wwa/MiaPanel"
 import { MessageSquare, X } from "lucide-react"
 
 // ─── Floating Mia wrapper ─────────────────────────────────────────────────────
@@ -26,6 +26,15 @@ function FloatingMia() {
 
   // Avoid SSR mismatch — only render the fixed overlay after mount
   useEffect(() => { setMounted(true) }, [])
+
+  // Re-open panel on desktop / mobile when any CTA calls focusMia()
+  useEffect(() => {
+    const unsub = onRevealMia(() => {
+      setDesktopVisible(true)
+      setMobileOpen(true)
+    })
+    return () => { unsub() }
+  }, [])
   if (!mounted) return null
 
   return (
