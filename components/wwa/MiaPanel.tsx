@@ -88,9 +88,37 @@ const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
   },
 }
 
-function recommendProgram(experience: string): { name: string; duration: string; tuition: string } {
+type ProgramName = "Foundational Pipe Welder" | "Professional Pipe Welder" | "Expert Pipe Welder"
+
+const PROGRAM_META: Record<ProgramName, { duration: string; tuition: string }> = {
+  "Foundational Pipe Welder": { duration: "12 weeks", tuition: "$17,050" },
+  "Professional Pipe Welder": { duration: "19 weeks", tuition: "$27,600" },
+  "Expert Pipe Welder": { duration: "24 weeks", tuition: "$35,800" },
+}
+
+// When a programContext hint is set, bias the recommendation toward that program
+// unless the user's experience level is a clear mismatch (e.g. "Experienced welder"
+// asking about Foundational — in that case, still recommend Expert).
+function recommendProgram(
+  experience: string,
+  contextHint?: string | null,
+): { name: string; duration: string; tuition: string } {
+  // Hard experience mismatches override the context hint
   if (experience === "Experienced welder")
     return { name: "Expert Pipe Welder", duration: "24 weeks", tuition: "$35,800" }
+  if (
+    (experience.includes("None") || experience.includes("beginner")) &&
+    contextHint === "Expert Pipe Welder"
+  )
+    return { name: "Foundational Pipe Welder", duration: "12 weeks", tuition: "$17,050" }
+
+  // If a valid context hint exists, use it
+  if (contextHint && contextHint in PROGRAM_META) {
+    const meta = PROGRAM_META[contextHint as ProgramName]
+    return { name: contextHint, ...meta }
+  }
+
+  // Default experience-based logic
   if (experience.includes("on the job"))
     return { name: "Professional Pipe Welder", duration: "19 weeks", tuition: "$27,600" }
   return { name: "Foundational Pipe Welder", duration: "12 weeks", tuition: "$17,050" }
@@ -136,6 +164,23 @@ function buildConversationSummary(answers: string[], program: { name: string }):
   return parts.filter(Boolean).join(" ")
 }
 
+// ─── Focus event bus ──────────────────────────────────────────────────────────
+// Any component can call focusMia(programName?) to scroll to and optionally
+// pre-seed the Mia panel with a program context, without prop drilling.
+
+type FocusMiaListener = (programName?: string) => void
+const focusMiaListeners = new Set<FocusMiaListener>()
+
+export function focusMia(programName?: string) {
+  const el = document.getElementById("hero-mia")
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" })
+    el.style.outline = "2px solid var(--color-primary)"
+    setTimeout(() => { el.style.outline = "" }, 1200)
+  }
+  focusMiaListeners.forEach((fn) => fn(programName))
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Message = { role: "mia" | "user"; text: string }
@@ -158,6 +203,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   const [answers, setAnswers] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [phase, setPhase] = useState<Phase>("idle")
+  const [programContext, setProgramContext] = useState<string | null>(null)
   const [lead, setLead] = useState<LeadData>({
     name: "",
     phone: "",
@@ -172,8 +218,23 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Register this panel as a focusMia listener
+  useEffect(() => {
+    const handler: FocusMiaListener = (name) => {
+      setProgramContext(name ?? null)
+      // If idle, auto-start (the context label will show in IdleState briefly,
+      // then startFlow will run). If already in a flow, just update context.
+      setPhase((prev) => {
+        if (prev === "idle") return "idle" // IdleState renders context label; user clicks Start
+        return prev
+      })
+    }
+    focusMiaListeners.add(handler)
+    return () => { focusMiaListeners.delete(handler) }
+  }, [])
+
   const [, experience, timeline, concern] = answers
-  const program = recommendProgram(experience ?? "")
+  const program = recommendProgram(experience ?? "", programContext)
   const intent = intentLevel(timeline ?? "")
 
   // Required: name + phone. contact and time have pre-selected defaults so always satisfied.
@@ -278,6 +339,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setOptionsVisible(false)
     setGroundedReady(false)
     setSubmitted(false)
+    setProgramContext(null)
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
     setActiveTab("student")
   }
@@ -457,7 +519,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {phase === "idle" ? (
-          <IdleState onStart={startFlow} />
+          <IdleState onStart={startFlow} programContext={programContext} />
         ) : (
           <>
             {messages.map((msg, i) =>
@@ -518,10 +580,29 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
 // ─── Idle State ───────────────────────────────────────────────────────────────
 
-function IdleState({ onStart }: { onStart: () => void }) {
+function IdleState({
+  onStart,
+  programContext,
+}: {
+  onStart: () => void
+  programContext?: string | null
+}) {
   return (
     <div className="flex flex-col h-full">
       <div className="space-y-3 pt-1 flex-1">
+        {/* Program context label — only shown when launched from a card */}
+        {programContext && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30">
+            <div className="w-1.5 h-1.5 bg-primary rounded-full shrink-0" />
+            <p
+              className="text-xs font-bold tracking-wider uppercase text-primary"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              {"You're checking fit for: "}
+              <span className="text-foreground">{programContext}</span>
+            </p>
+          </div>
+        )}
         <MiaBubble text="Most people who land here are interested but unsure. I'm here to help you figure out if this is actually a fit — not to sell you." />
         <MiaBubble text="4 questions. 2 minutes. Straight answer at the end." />
         <div className="ml-9 flex items-start gap-2 border border-border bg-secondary/40 px-3 py-2.5">

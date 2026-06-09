@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { ArrowRight, Clock, DollarSign, TrendingUp } from "lucide-react"
 import { openApplyModal } from "./ApplyModal"
+import { focusMia } from "./MiaPanel"
 
 const programs = [
   {
@@ -164,14 +165,7 @@ export default function Programs() {
                   Apply Now
                 </button>
                 <button
-                  onClick={() => {
-                    const el = document.getElementById("hero-mia")
-                    if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "center" })
-                      el.style.outline = "2px solid var(--color-primary)"
-                      setTimeout(() => { el.style.outline = "" }, 1200)
-                    }
-                  }}
+                  onClick={() => focusMia(prog.name)}
                   className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
@@ -190,14 +184,7 @@ export default function Programs() {
           <span>Financial aid available for qualified applicants.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <button
-            onClick={() => {
-              const el = document.getElementById("hero-mia")
-              if (el) {
-                el.scrollIntoView({ behavior: "smooth", block: "center" })
-                el.style.outline = "2px solid var(--color-primary)"
-                setTimeout(() => { el.style.outline = "" }, 1200)
-              }
-            }}
+            onClick={() => focusMia()}
             className="text-primary hover:underline font-semibold"
           >
             Ask Mia about financing →

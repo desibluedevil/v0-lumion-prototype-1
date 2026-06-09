@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { ArrowRight, CheckCircle } from "lucide-react"
+import { focusMia } from "./MiaPanel"
 
 const bullets = [
   "Check if WWA fits your goals",
@@ -9,15 +10,6 @@ const bullets = [
   "Get matched to a recommended next step",
   "Talk to enrollment only if you're ready",
 ]
-
-function scrollToMia() {
-  const el = document.getElementById("hero-mia")
-  if (!el) return
-  el.scrollIntoView({ behavior: "smooth", block: "center" })
-  // Brief visual pulse to draw attention to the panel
-  el.style.outline = "2px solid var(--color-primary)"
-  setTimeout(() => { el.style.outline = "" }, 1200)
-}
 
 export default function MiaSection() {
   return (
@@ -72,7 +64,7 @@ export default function MiaSection() {
 
             {/* CTA */}
             <button
-              onClick={scrollToMia}
+              onClick={() => focusMia()}
               className="flex items-center gap-3 px-10 py-4 bg-primary text-primary-foreground font-black tracking-widest uppercase hover:bg-primary/90 transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1rem" }}
             >
