@@ -179,7 +179,7 @@ export function focusMia(programName?: string) {
   focusMiaListeners.forEach((fn) => fn(programName))
 }
 
-// ─── Types ─────────────���──────────────────────────────────────────────────────
+// ─── Types ─���───────────���──────────────────────────────────────────────────────
 
 type Message = { role: "mia" | "user"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
@@ -530,6 +530,27 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           <p className="text-center text-[10px] text-muted-foreground pb-1">
             {"We'll only use this to follow up about WWA programs. No spam."}
           </p>
+
+          <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
+            <button
+              type="button"
+              onClick={() => setPhase("summary")}
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <ChevronLeft size={11} />
+              Edit Answers
+            </button>
+            <button
+              type="button"
+              onClick={resetFlow}
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <RotateCcw size={9} />
+              Start Over
+            </button>
+          </div>
         </div>
       </PanelShell>
     )
@@ -571,17 +592,28 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                     {opt}
                   </button>
                 ))}
-                {stepIndex > 0 && (
+                <div className="flex items-center gap-3 pt-1 mt-1 border-t border-border/50">
+                  {stepIndex > 0 ? (
+                    <button
+                      type="button"
+                      onClick={goBackOneStep}
+                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      <ChevronLeft size={11} />
+                      Back
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={goBackOneStep}
-                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors mt-1 pt-1"
+                    onClick={resetFlow}
+                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
-                    <ChevronLeft size={11} />
-                    Back
+                    <RotateCcw size={9} />
+                    Start Over
                   </button>
-                )}
+                </div>
               </div>
             )}
 
@@ -608,6 +640,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                 intent={intent}
                 onCapture={() => setPhase("capture")}
                 onBack={goBackToGrounded}
+                onReset={resetFlow}
               />
             )}
           </>
@@ -675,12 +708,14 @@ function FitSummaryCard({
   intent,
   onCapture,
   onBack,
+  onReset,
 }: {
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   onCapture: () => void
   onBack: () => void
+  onReset: () => void
 }) {
   const [goal, experience, timeline, concern] = answers
   const intentColor =
@@ -770,6 +805,15 @@ function FitSummaryCard({
         >
           <ChevronLeft size={12} />
           Edit Answers
+        </button>
+        <button
+          type="button"
+          onClick={onReset}
+          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          <RotateCcw size={10} />
+          Start Over
         </button>
         <a
           href="tel:18005551234"
