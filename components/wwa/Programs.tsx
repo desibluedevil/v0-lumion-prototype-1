@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { ArrowRight, Clock, DollarSign, TrendingUp } from "lucide-react"
+import { openApplyModal } from "./ApplyModal"
 
 const programs = [
   {
@@ -70,6 +71,7 @@ export default function Programs() {
             </h2>
           </div>
           <button
+            onClick={() => document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" })}
             className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
@@ -151,6 +153,7 @@ export default function Programs() {
               {/* Actions */}
               <div className="space-y-2 mt-auto">
                 <button
+                  onClick={openApplyModal}
                   className={`w-full py-3 font-bold tracking-widest uppercase text-sm transition-colors ${
                     prog.featured
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -181,12 +184,15 @@ export default function Programs() {
         </div>
 
         {/* Bottom note */}
-        <div className="mt-6 flex items-center justify-center gap-3 text-muted-foreground text-sm">
+        <div id="financial-aid" className="mt-6 flex items-center justify-center gap-3 text-muted-foreground text-sm">
           <span>Housing, tools, and materials included in all programs.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <span>Financial aid available for qualified applicants.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
-          <button className="text-primary hover:underline font-semibold">
+          <button
+            onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
+            className="text-primary hover:underline font-semibold"
+          >
             See financing options →
           </button>
         </div>

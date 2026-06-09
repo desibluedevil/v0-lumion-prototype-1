@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 import MiaPanel from "./MiaPanel"
+import { openApplyModal } from "./ApplyModal"
 
 export default function Hero() {
   return (
@@ -71,6 +72,7 @@ export default function Hero() {
             {/* CTAs */}
             <div className="flex items-center gap-3 flex-wrap">
               <button
+                onClick={openApplyModal}
                 className="px-8 py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center gap-2"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >

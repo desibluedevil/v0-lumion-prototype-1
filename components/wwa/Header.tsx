@@ -1,13 +1,30 @@
 "use client"
 
 import { Phone, ChevronDown } from "lucide-react"
+import { openApplyModal } from "./ApplyModal"
+
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
+}
+
+function focusMia() {
+  const el = document.getElementById("hero-mia")
+  if (!el) return
+  el.scrollIntoView({ behavior: "smooth", block: "center" })
+  el.style.outline = "2px solid var(--color-primary)"
+  setTimeout(() => { el.style.outline = "" }, 1200)
+}
 
 export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
       <div className="max-w-[1440px] mx-auto px-8 h-16 flex items-center justify-between gap-8">
+
         {/* Logo */}
-        <div className="flex items-center gap-3 shrink-0">
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="flex items-center gap-3 shrink-0"
+        >
           <div className="w-10 h-10 bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-xs tracking-widest" style={{ fontFamily: "var(--font-barlow-condensed)" }}>WWA</span>
           </div>
@@ -15,23 +32,19 @@ export default function Header() {
             <div className="text-foreground font-bold text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-barlow-condensed)" }}>Western</div>
             <div className="text-foreground font-bold text-sm tracking-widest uppercase" style={{ fontFamily: "var(--font-barlow-condensed)" }}>Welding Academy</div>
           </div>
-        </div>
+        </button>
 
         {/* Nav */}
         <nav className="flex items-center gap-8">
           {[
-            { label: "Programs", anchor: "programs" },
-            { label: "Financial Aid", anchor: null },
-            { label: "Housing", anchor: null },
-            { label: "About Us", anchor: null },
+            { label: "Programs",     action: () => scrollTo("programs") },
+            { label: "Financial Aid",action: () => scrollTo("financial-aid") },
+            { label: "Housing",      action: () => scrollTo("proof") },
+            { label: "About Us",     action: () => scrollTo("proof") },
           ].map((item) => (
             <button
               key={item.label}
-              onClick={() =>
-                item.anchor
-                  ? document.getElementById(item.anchor)?.scrollIntoView({ behavior: "smooth" })
-                  : undefined
-              }
+              onClick={item.action}
               className="flex items-center gap-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
@@ -52,16 +65,21 @@ export default function Header() {
             1-800-555-1234
           </a>
           <button
-            onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={focusMia}
             className="px-5 py-2 border border-border text-sm font-bold tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             See If It&apos;s a Fit
           </button>
-          <button className="px-5 py-2 bg-primary text-primary-foreground text-sm font-bold tracking-widest uppercase hover:bg-primary/90 transition-colors" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+          <button
+            onClick={openApplyModal}
+            className="px-5 py-2 bg-primary text-primary-foreground text-sm font-bold tracking-widest uppercase hover:bg-primary/90 transition-colors"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
             Apply Now
           </button>
         </div>
+
       </div>
     </header>
   )

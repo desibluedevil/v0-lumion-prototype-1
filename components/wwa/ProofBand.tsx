@@ -7,7 +7,7 @@ const stats = [
 
 export default function ProofBand() {
   return (
-    <section className="bg-primary border-y border-primary/80">
+    <section id="proof" className="bg-primary border-y border-primary/80">
       <div className="max-w-[1440px] mx-auto px-8">
         <div className="grid grid-cols-4 divide-x divide-primary-foreground/20">
           {stats.map((stat) => (

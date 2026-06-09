@@ -4,6 +4,7 @@ import ProofBand from "@/components/wwa/ProofBand"
 import Programs from "@/components/wwa/Programs"
 import MiaSection from "@/components/wwa/MiaSection"
 import Footer from "@/components/wwa/Footer"
+import ApplyModal from "@/components/wwa/ApplyModal"
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <Programs />
       <MiaSection />
       <Footer />
+      <ApplyModal />
     </main>
   )
 }
