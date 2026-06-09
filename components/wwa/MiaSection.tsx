@@ -81,7 +81,7 @@ export default function MiaSection() {
                 src="/images/wwa-facility.png"
                 alt="Western Welding Academy training facility — Gillette, Wyoming"
                 fill
-                loading="eager"
+                priority
                 className="object-cover object-center"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
