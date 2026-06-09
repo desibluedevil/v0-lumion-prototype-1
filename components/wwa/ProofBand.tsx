@@ -1,6 +1,6 @@
 const stats = [
   { value: "2,000+", label: "Graduates" },
-  { value: "94%", label: "Get Hired" },
+  { value: "94%", label: "Reported Hire Rate" },
   { value: "85%", label: "Hands-On Training" },
   { value: "Included", label: "Housing, Tools & Materials" },
 ]

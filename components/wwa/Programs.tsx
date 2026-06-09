@@ -142,6 +142,9 @@ export default function Programs() {
                       <span className="text-[10px] font-bold tracking-widest uppercase" style={{ fontFamily: "var(--font-barlow-condensed)" }}>{label}</span>
                     </div>
                     <div className={`font-bold text-sm ${className}`} style={{ fontFamily: "var(--font-barlow-condensed)" }}>{value}</div>
+                    {label === "Salary" && (
+                      <p className="text-[9px] text-muted-foreground/60 leading-tight">Varies by employer, location &amp; role</p>
+                    )}
                   </div>
                 ))}
               </div>

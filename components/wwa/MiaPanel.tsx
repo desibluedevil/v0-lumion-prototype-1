@@ -68,7 +68,7 @@ const STEPS = [
 const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
   "Cost — can I afford it?": {
     headline: "Programs range from $17,050 to $35,800. Housing, tools, and materials are included.",
-    body: "Financing may be available for qualified applicants.",
+    body: "Financing may be available for qualified applicants. An advisor can walk you through options.",
   },
   "Location — can I move to Wyoming?": {
     headline: "WWA is in Gillette, Wyoming, and housing is included so students can relocate for training.",
@@ -79,8 +79,8 @@ const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
     body: "The Foundational Pipe Welder program starts from zero.",
   },
   "Outcome — will I actually get hired?": {
-    headline: "WWA highlights a 94% hire rate and starting salary ranges by program.",
-    body: "No school should guarantee a job, but WWA has strong graduate outcomes across 2,000+ graduates.",
+    headline: "WWA reports a 94% hire rate across 2,000+ graduates.",
+    body: "Salary ranges vary by employer, location, experience, and role. No school can guarantee employment, but WWA has a strong placement track record.",
   },
   "Fit — which program is right for me?": {
     headline: "Based on your experience and goals, Mia can recommend which program to explore first.",
@@ -736,6 +736,10 @@ function FitSummaryCard({
         </div>
       </div>
 
+      <p className="text-[11px] text-muted-foreground/70 leading-relaxed px-1">
+        This is a fit check, not an admissions decision. This is a suggested starting point based on your answers.
+      </p>
+
       <MiaBubble text="Want me to send this to an enrollment advisor? They can help with financing, housing, next start dates, and whether WWA is the right move." />
 
       <div className="ml-9 space-y-2">
@@ -812,7 +816,7 @@ function StudentConfirmation({
             {"You're all set."}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            An enrollment advisor will reach out with your fit summary and next steps.
+            An enrollment advisor will reach out with your fit summary and next steps. An advisor can confirm details and help you decide the right next step.
           </p>
         </div>
       </div>
