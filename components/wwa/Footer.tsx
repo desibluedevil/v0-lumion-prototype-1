@@ -53,13 +53,13 @@ export default function Footer() {
       {/* Red rule */}
       <div className="h-1 bg-primary w-full" />
 
-      <div className="max-w-[1440px] mx-auto px-8 pt-16 pb-10">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 pt-12 lg:pt-16 pb-8 lg:pb-10">
 
         {/* Main grid: brand col + 4 link cols */}
-        <div className="grid grid-cols-5 gap-10 mb-14">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-10 mb-10 lg:mb-14">
 
-          {/* Brand column */}
-          <div className="col-span-1 space-y-6">
+          {/* Brand column — full width on mobile, 1 col on desktop */}
+          <div className="col-span-2 sm:col-span-3 lg:col-span-1 space-y-6">
             {/* Logo mark */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

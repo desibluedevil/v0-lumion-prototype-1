@@ -29,11 +29,11 @@ export default function Hero() {
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-background/80" />
       </div>
 
-      <div className="max-w-[1440px] mx-auto px-8 w-full py-20 relative flex items-center">
-        <div className="grid grid-cols-12 gap-10 items-center w-full">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 w-full py-12 lg:py-20 relative flex items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center w-full">
 
-          {/* LEFT: headline + CTAs — 7 cols */}
-          <div className="col-span-7 space-y-8">
+          {/* LEFT: headline + CTAs — 7 cols on desktop, full width on mobile */}
+          <div className="lg:col-span-7 space-y-8">
 
             {/* Headline — split lines matching WWA */}
             <h1
@@ -95,8 +95,8 @@ export default function Hero() {
 
           </div>
 
-          {/* RIGHT: Mia panel — 5 cols */}
-          <div id="hero-mia" className="col-span-5">
+          {/* RIGHT: Mia panel — 5 cols on desktop, full width on mobile */}
+          <div id="hero-mia" className="lg:col-span-5">
             <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />
           </div>

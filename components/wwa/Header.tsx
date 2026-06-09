@@ -55,8 +55,8 @@ export default function Header() {
             </div>
           </button>
 
-          {/* Nav */}
-          <nav className="flex items-center gap-7">
+          {/* Nav — hidden on mobile */}
+          <nav className="hidden lg:flex items-center gap-7">
             {[
               { label: "Programs",     action: () => scrollTo("programs") },
               { label: "Financial Aid",action: () => scrollTo("financial-aid") },
@@ -75,10 +75,10 @@ export default function Header() {
           </nav>
 
           {/* Right: phone + CTAs */}
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center gap-2 lg:gap-4 shrink-0">
             <a
               href="tel:18005551234"
-              className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden lg:flex items-center gap-1.5 text-xs font-bold tracking-wider text-muted-foreground hover:text-foreground transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               <Phone size={13} />
@@ -87,7 +87,7 @@ export default function Header() {
 
             <button
               onClick={() => focusMia()}
-              className="px-4 py-2 border border-border text-xs font-black tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
+              className="hidden lg:block px-4 py-2 border border-border text-xs font-black tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               Program Quiz

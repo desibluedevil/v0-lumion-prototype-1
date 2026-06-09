@@ -31,7 +31,7 @@ export default function Mission() {
   return (
     <section id="mission" className="bg-card border-t border-border">
       {/* Mission statement */}
-      <div className="max-w-[1440px] mx-auto px-8 pt-20 pb-16">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 pt-12 lg:pt-20 pb-12 lg:pb-16">
         <div className="max-w-4xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-0.5 w-12 bg-primary" />
@@ -70,10 +70,10 @@ export default function Mission() {
       </div>
 
       {/* Four pillars */}
-      <div className="max-w-[1440px] mx-auto px-8 py-16">
-        <div className="grid grid-cols-4 divide-x divide-border">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8 py-12 lg:py-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-0 sm:divide-x-0 lg:divide-x divide-border">
           {pillars.map(({ Icon, title, description }) => (
-            <div key={title} className="px-10 first:pl-0 last:pr-0 space-y-5">
+            <div key={title} className="px-0 lg:px-10 lg:first:pl-0 lg:last:pr-0 space-y-5 py-8 sm:py-0 border-b sm:border-b-0 last:border-b-0 border-border">
               {/* Icon */}
               <div className="w-11 h-11 border border-primary/40 flex items-center justify-center">
                 <Icon size={22} className="text-primary" strokeWidth={1.5} />

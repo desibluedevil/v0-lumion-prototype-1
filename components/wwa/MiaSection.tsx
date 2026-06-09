@@ -13,12 +13,12 @@ const bullets = [
 
 export default function MiaSection() {
   return (
-    <section id="mia-section" className="py-24 bg-card border-t border-border">
-      <div className="max-w-[1440px] mx-auto px-8">
-        <div className="grid grid-cols-12 gap-16 items-center">
+    <section id="mia-section" className="py-16 lg:py-24 bg-card border-t border-border">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
 
-          {/* Left copy — 6 cols */}
-          <div className="col-span-6 space-y-8">
+          {/* Left copy — 6 cols on desktop, full on mobile */}
+          <div className="lg:col-span-6 space-y-8">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-px w-10 bg-primary" />
@@ -73,8 +73,8 @@ export default function MiaSection() {
             </button>
           </div>
 
-          {/* Right — facility photo — 6 cols */}
-          <div className="col-span-6">
+          {/* Right — facility photo — 6 cols on desktop */}
+          <div className="lg:col-span-6">
             <div className="h-0.5 w-full bg-primary mb-0" />
             <div className="w-full aspect-[4/3] relative overflow-hidden border border-border border-t-0">
               <Image

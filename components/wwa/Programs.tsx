@@ -46,8 +46,8 @@ const programs = [
 
 export default function Programs() {
   return (
-    <section id="programs" className="py-24 bg-background">
-      <div className="max-w-[1440px] mx-auto px-8">
+    <section id="programs" className="py-16 lg:py-24 bg-background">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-16 space-y-5">
           {/* Eyebrow */}
@@ -99,7 +99,7 @@ export default function Programs() {
         </div>
 
         {/* Program cards */}
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {programs.map((prog) => (
             <div
               key={prog.level}
@@ -208,7 +208,7 @@ export default function Programs() {
         </div>
 
         {/* Bottom note */}
-        <div id="financial-aid" className="mt-6 flex items-center justify-center gap-3 text-muted-foreground text-sm">
+        <div id="financial-aid" className="mt-6 flex flex-wrap items-center justify-center gap-3 text-muted-foreground text-sm">
           <span>Housing, tools, and materials included in all programs.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <span>Financial aid available for qualified applicants.</span>
