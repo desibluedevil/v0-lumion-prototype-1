@@ -71,11 +71,11 @@ export default function Programs() {
             </h2>
           </div>
           <button
-            onClick={() => document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
             className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            View All Programs
+            Not sure which program?
             <ArrowRight size={14} />
           </button>
         </div>
@@ -190,10 +190,17 @@ export default function Programs() {
           <span>Financial aid available for qualified applicants.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <button
-            onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => {
+              const el = document.getElementById("hero-mia")
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" })
+                el.style.outline = "2px solid var(--color-primary)"
+                setTimeout(() => { el.style.outline = "" }, 1200)
+              }
+            }}
             className="text-primary hover:underline font-semibold"
           >
-            See financing options →
+            Ask Mia about financing →
           </button>
         </div>
       </div>

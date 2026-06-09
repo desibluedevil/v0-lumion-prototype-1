@@ -376,7 +376,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             />
           </Field>
 
-          <Field label="Best way to reach you" required>
+          <Field label="Best way to reach you">
             <div className="flex gap-2">
               {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
                 const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
@@ -400,7 +400,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
-          <Field label="Best time to reach you" required>
+          <Field label="Best time to reach you">
             <div className="flex gap-2">
               {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
                 <button
@@ -649,11 +649,11 @@ function FitSummaryCard({
         </button>
         <button
           type="button"
-          onClick={() => window.open("tel:18005804173")}
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Call Directly: 1-800-580-4173
+          onClick={() => window.open("tel:18005551234")}
+                  className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                >
+                  Call Directly: 1-800-555-1234
         </button>
       </div>
     </div>
