@@ -643,7 +643,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} />
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-white">
           <StudentConfirmation
             lead={lead}
             answers={answers}
@@ -666,7 +666,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} />
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 bg-white">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
 
           <Field label="First name" required>
@@ -833,7 +833,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
       <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white">
         {phase === "idle" ? (
           <>
             <IdleState onStart={startFlow} programContext={programContext} />
@@ -1062,7 +1062,7 @@ function IdleState({
       </div>
 
       {/* CTAs */}
-      <div className="pt-4 pb-1 space-y-2 border-t border-[#E5E5E5] mt-4">
+      <div className="pt-3 pb-1 space-y-2 border-t border-[#E5E5E5] mt-3">
         <button
           type="button"
           onClick={onStart}
@@ -1285,7 +1285,7 @@ function SummarySection({ label, children }: { label: string; children: React.Re
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────────────────
+// ─── Student Confirmation ───────────────────────��─────────────────────────────
 
 function StudentConfirmation({
   lead,
@@ -1409,7 +1409,7 @@ function StudentConfirmation({
         )}
       </div>
 
-      {/* ── Actions ────────────────────────────────────────────────── */}
+      {/* ── Actions ─────────────────���──────────────────────────────── */}
       <div className="space-y-2 pt-1">
         <button
           type="button"
@@ -1460,13 +1460,13 @@ function EnrollmentView({
   // Intent display helpers
   const intentLabel = intent === "High" ? "High" : intent === "Medium" ? "Warm" : "Researching"
   const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+    intent === "High" ? "text-green-700" : intent === "Medium" ? "text-yellow-700" : "text-[#888888]"
   const intentBg =
     intent === "High"
-      ? "bg-green-500/10 border-green-500/30"
+      ? "bg-green-50 border-green-300"
       : intent === "Medium"
-      ? "bg-yellow-500/10 border-yellow-500/30"
-      : "bg-secondary border-border"
+      ? "bg-yellow-50 border-yellow-300"
+      : "bg-[#F5F5F5] border-[#E0E0E0]"
 
   // Derive routing signals from answers
   const concernLabel = concern?.replace(/\s*—.*$/, "").trim() ?? "—"
@@ -1734,6 +1734,7 @@ function StepProgress({
   const handoffActive = phase === "handoff"
   const flowDone = phase === "grounded" || summaryActive || handoffActive
   const isIdle = phase === "idle"
+  if (isIdle) return null
   return (
     <div className="px-4 py-2 border-b border-[#E5E5E5] bg-white shrink-0 flex items-center gap-1.5">
       {PROGRESS_STEPS.map((label, i) => {
