@@ -241,11 +241,16 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   // Track whether the user has scrolled up manually so we don't hijack their position.
   // Reset to false whenever a phase change happens (new screen = resume auto-scroll).
   const userScrolledUp = useRef(false)
+  // Generation counter — increments whenever the flow is reset or a new intent fires.
+  // setTimeout callbacks capture their generation and bail if it's stale.
+  const gen = useRef(0)
 
   // Register this panel as a focusMia listener
   useEffect(() => {
     const handler: FocusMiaListener = (intent) => {
       const { programName, autoStart, jumpToConcern, prefillConcern } = intent
+      // Bump generation so any in-flight timeouts from the previous intent become no-ops
+      const myGen = ++gen.current
 
       if (programName) setProgramContext(programName)
 
@@ -277,11 +282,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             ...intro,
             { role: "user", text: prefillConcern },
           ])
-          setAnswers([prefillConcern])
+          // Pad to index 3 so destructuring [goal, experience, timeline, concern] works correctly
+          setAnswers(["", "", "", prefillConcern])
           setPhase("grounded")
           setTimeout(() => {
+            if (gen.current !== myGen) return
             setMessages((prev) => [...prev, { role: "mia", text: responseText }])
             setTimeout(() => {
+              if (gen.current !== myGen) return
               setMessages((prev) => [...prev, { role: "mia", text: bridgeText }])
               setGroundedReady(true)
             }, 700)
@@ -295,6 +303,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
       if (autoStart) {
         // Start the flow fresh from step 0
+        // Clear programContext unless a specific program was provided
+        if (!programName) setProgramContext(null)
         setPhase("flow")
         setStepIndex(0)
         setAnswers([])
@@ -305,6 +315,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
         ])
         setTimeout(() => {
+          if (gen.current !== myGen) return
           setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
           setOptionsVisible(true)
         }, 400)
@@ -322,8 +333,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const program = recommendProgram(experience ?? "", programContext)
   const intent = intentLevel(timeline ?? "")
 
-  // Required: name + phone. contact and time have pre-selected defaults so always satisfied.
-  const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0 && !submitted
+  // Required: name + complete phone. contact and time have pre-selected defaults so always satisfied.
+  // A complete US phone in (###) ###-#### format is exactly 14 chars.
+  const phoneDigits = lead.phone.replace(/\D/g, "")
+  const phoneComplete = phoneDigits.length === 10
+  const phonePartial = lead.phone.trim().length > 0 && !phoneComplete
+  const canSubmit = lead.name.trim().length > 0 && phoneComplete && !submitted
 
   // ── User-scroll detection ──────────────────────────────────────────────────
   // When the user scrolls up more than 40px from the bottom we stop auto-scrolling.
@@ -381,6 +396,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   // ── Flow ──────────────────────────────────────────────────────────────────
 
   function startFlow() {
+    const myGen = ++gen.current
     setPhase("flow")
     setStepIndex(0)
     setAnswers([])
@@ -394,6 +410,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       },
     ])
     setTimeout(() => {
+      if (gen.current !== myGen) return
       setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
       setOptionsVisible(true)
     }, 500)
@@ -413,6 +430,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   }
 
   function handleOption(option: string) {
+    const myGen = ++gen.current
     const newAnswers = [...answers, option]
     const newStep = stepIndex + 1
 
@@ -422,6 +440,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
     if (newStep < STEPS.length) {
       setTimeout(() => {
+        if (gen.current !== myGen) return
         setStepIndex(newStep)
         setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStep].question }])
         setOptionsVisible(true)
@@ -439,8 +458,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       setGroundedReady(false)
 
       setTimeout(() => {
+        if (gen.current !== myGen) return
         pushMia(responseText)
         setTimeout(() => {
+          if (gen.current !== myGen) return
           pushMia(bridgeText)
           setGroundedReady(true)
         }, 900)
@@ -468,6 +489,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   }
 
   function resetFlow() {
+    gen.current++ // cancel any pending setTimeout callbacks from the previous flow
     setPhase("idle")
     setStepIndex(0)
     setAnswers([])
@@ -547,8 +569,15 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               }}
               placeholder="(555) 000-0000"
               autoComplete="tel"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className={`w-full bg-input border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
+                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-border focus:border-primary"
+              }`}
             />
+            {phonePartial && (
+              <p className="text-[10px] text-red-400 mt-1">
+                Enter a complete 10-digit phone number.
+              </p>
+            )}
           </Field>
 
           <Field label="Email (optional)">
@@ -821,41 +850,15 @@ function FitSummaryCard({
   onReset: () => void
 }) {
   const [goal, experience, timeline, concern] = answers
-  const intentColor =
-    intent === "High"
-      ? "text-green-400"
-      : intent === "Medium"
-      ? "text-yellow-400"
-      : "text-muted-foreground"
-  const intentBg =
-    intent === "High"
-      ? "bg-green-500/10 border-green-500/30"
-      : intent === "Medium"
-      ? "bg-yellow-500/10 border-yellow-500/30"
-      : "bg-secondary border-border"
-
-  const nextStep =
-    intent === "High"
-      ? "Talk to enrollment this week"
-      : intent === "Medium"
-      ? "Request info — follow up in 2–3 weeks"
-      : "Review program options — no rush"
-
   return (
     <div className="space-y-3 pt-1">
       <div className="border border-border bg-secondary">
-        <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+        <div className="px-4 py-2.5 border-b border-border">
           <span
             className="text-xs font-black tracking-widest uppercase text-foreground"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            Fit Summary
-          </span>
-          <span
-            className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 border ${intentBg} ${intentColor}`}
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            {intent} Intent
+            Your Fit Summary
           </span>
         </div>
         <div className="px-4 py-3 space-y-2">
@@ -863,22 +866,14 @@ function FitSummaryCard({
             ["Recommended program", program.name],
             ["Duration", program.duration],
             ["All-in tuition", program.tuition],
-            ["Experience level", experience ?? "—"],
-            ["Your goal", goal ?? "—"],
-            ["Your timeline", timeline ?? "—"],
-            ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
-            ["Intent level", intent],
-            ["Recommended next step", nextStep],
+            ...(experience ? [["Your experience", experience]] as [string, string][] : []),
+            ...(goal ? [["Your goal", goal]] as [string, string][] : []),
+            ...(timeline ? [["Your start timeline", timeline]] as [string, string][] : []),
+            ...(concern ? [["Main question", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-start gap-4 text-xs">
               <span className="text-muted-foreground shrink-0">{label}</span>
-              <span
-                className={`font-semibold text-right ${
-                  label === "Intent level" ? intentColor : "text-foreground"
-                }`}
-              >
-                {value}
-              </span>
+              <span className="font-semibold text-foreground text-right">{value}</span>
             </div>
           ))}
         </div>

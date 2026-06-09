@@ -19,7 +19,7 @@ export default function ApplyModal() {
   const [program, setProgram] = useState("")
   const [submitted, setSubmitted] = useState(false)
 
-  const canSubmit = name.trim().length > 0 && phone.trim().length > 0 && !submitted
+  const canSubmit = name.trim().length > 0 && phone.replace(/\D/g, "").length === 10 && !submitted
 
   const handleClose = useCallback(() => {
     setOpen(false)
@@ -111,8 +111,20 @@ export default function ApplyModal() {
               </label>
               <input
                 type="tel"
+                inputMode="numeric"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                  let formatted = ""
+                  if (digits.length <= 3) {
+                    formatted = digits.length ? `(${digits}` : ""
+                  } else if (digits.length <= 6) {
+                    formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+                  } else {
+                    formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+                  }
+                  setPhone(formatted)
+                }}
                 placeholder="(307) 555-0100"
                 autoComplete="tel"
                 disabled={submitted}
