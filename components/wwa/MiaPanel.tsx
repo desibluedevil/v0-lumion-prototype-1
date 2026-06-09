@@ -376,7 +376,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             />
           </Field>
 
-          <Field label="Best way to reach you">
+          <Field label="Best way to reach you" required>
             <div className="flex gap-2">
               {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
                 const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
@@ -400,7 +400,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
-          <Field label="Best time to reach you">
+          <Field label="Best time to reach you" required>
             <div className="flex gap-2">
               {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
                 <button
@@ -626,7 +626,7 @@ function FitSummaryCard({
         </div>
       </div>
 
-      <MiaBubble text="Want me to send this to an enrollment advisor? They'll reach out with answers on financing, next start dates, and housing — usually within one business day." />
+      <MiaBubble text="Want me to send this to an enrollment advisor? They can help with financing, housing, next start dates, and whether WWA is the right move." />
 
       <div className="ml-9 space-y-2">
         <button
@@ -720,10 +720,10 @@ function StudentConfirmation({
             ["Name", lead.name || "—"],
             ["Phone", lead.phone || "—"],
             ["Preferred contact", lead.contact],
-            ["Best time", `${lead.time}s`],
-            ["Program interest", program.name],
-            ["Timeline", timeline ?? "—"],
+            ["Best time to reach", lead.time],
+            ["Recommended program", program.name],
             ["Experience level", experience ?? "—"],
+            ["Timeline", timeline ?? "—"],
             ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
             ["Intent level", { value: intent, className: intentColor }],
             ["Suggested advisor opener", { value: advisorScript, italic: true }],
@@ -750,19 +750,19 @@ function StudentConfirmation({
       <div className="space-y-2 pt-1">
         <button
           type="button"
-          onClick={onViewEnrollment}
-          className="w-full py-2.5 border border-primary text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          View What Was Sent
-        </button>
-        <button
-          type="button"
           onClick={onReset}
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+          className="w-full py-2.5 bg-primary text-primary-foreground text-xs font-bold tracking-widest uppercase hover:bg-primary/90 transition-colors"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Start Over
+        </button>
+        <button
+          type="button"
+          onClick={onViewEnrollment}
+          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          View Enrollment Profile
         </button>
       </div>
     </div>
