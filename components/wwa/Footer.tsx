@@ -49,8 +49,8 @@ const COLUMNS = [
 
 export default function Footer() {
   return (
-    <footer style={{ backgroundColor: "#0a0a0a" }}>
-      {/* Red rule */}
+    <footer className="bg-background">
+      {/* Brand accent rule */}
       <div className="h-1 bg-primary w-full" />
 
       <div className="max-w-[1440px] mx-auto px-6 lg:px-8 pt-12 lg:pt-16 pb-8 lg:pb-10">
@@ -127,7 +127,7 @@ export default function Footer() {
           {/* Link columns */}
           {COLUMNS.map((col) => (
             <div key={col.title} className="space-y-5">
-              {/* Column heading with red rule */}
+              {/* Column heading with accent rule */}
               <div className="space-y-2">
                 <div className="w-6 h-0.5 bg-primary" />
                 <h4

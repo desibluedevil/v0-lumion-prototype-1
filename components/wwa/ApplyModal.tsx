@@ -50,7 +50,7 @@ export default function ApplyModal() {
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div className="relative w-full max-w-lg bg-card border border-border shadow-2xl">
-        {/* Red top bar */}
+        {/* Accent top bar */}
         <div className="h-1 w-full bg-primary" />
 
         {/* Header */}
