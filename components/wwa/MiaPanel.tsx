@@ -534,11 +534,20 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
-    // Scroll to the "Yes — show me the summary" anchor so "Your Answers" renders
-    // at the top of the visible area. User can scroll down to see the full card.
+    // Double rAF lets React paint the FitSummaryCard before we measure scrollHeight.
+    // Then scroll all the way to the top so the card title is the first thing visible.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        scrollToAnchor(summaryAnchorRef)
+        const el = scrollRef.current
+        if (!el) return
+        // Scroll to position of the anchor (start of summary user bubble) so content begins at top
+        scrollToAnchor(summaryAnchorRef, "smooth")
+        // Then after another frame let the full card render and scroll to show it fully
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollToBottom("smooth")
+          })
+        })
       })
     })
   }
@@ -641,8 +650,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const conversationSummary = buildConversationSummary(answers, program)
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} onClose={onClose} />
-        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
+        <PanelHeader onReset={resetFlow} onClose={onClose} phase="handoff" />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-white">
           <StudentConfirmation
             lead={lead}
@@ -664,7 +672,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   if (phase === "capture") {
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} onClose={onClose} />
+        <PanelHeader onReset={resetFlow} onClose={onClose} phase="capture" />
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 bg-white">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
@@ -830,7 +838,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
   return (
     <PanelShell compact={compact}>
-      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
+      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} phase={phase} />
       <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white">
@@ -840,21 +848,25 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             {/* Freeform Q&A messages accumulate below the IdleState CTA so they
                 are naturally at the bottom of the scroll area — MutationObserver
                 auto-scrolls to show them as they arrive. */}
-            {messages.length > 0 && messages.map((msg, i) =>
-              msg.role === "mia" ? (
-                <MiaBubble key={i} text={msg.text} />
+            {messages.length > 0 && messages.map((msg, i) => {
+              const nextMsg = messages[i + 1]
+              const isLast = !nextMsg || nextMsg.role !== msg.role
+              return msg.role === "mia" ? (
+                <MiaBubble key={i} text={msg.text} isLast={isLast} />
               ) : msg.role === "status" ? (
                 <StatusPill key={i} text={msg.text} />
               ) : (
-                <UserBubble key={i} text={msg.text} />
+                <UserBubble key={i} text={msg.text} isLast={isLast} />
               )
-            )}
+            })}
           </>
         ) : (
           <>
-            {messages.map((msg, i) =>
-              msg.role === "mia" ? (
-                <MiaBubble key={i} text={msg.text} />
+            {messages.map((msg, i) => {
+              const nextMsg = messages[i + 1]
+              const isLast = !nextMsg || nextMsg.role !== msg.role
+              return msg.role === "mia" ? (
+                <MiaBubble key={i} text={msg.text} isLast={isLast} />
               ) : msg.role === "status" ? (
                 <StatusPill key={i} text={msg.text} />
               ) : (
@@ -863,10 +875,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                   {msg.text === "Yes — show me the summary" && (
                     <div ref={summaryAnchorRef} aria-hidden="true" className="h-0" />
                   )}
-                  <UserBubble text={msg.text} />
+                  <UserBubble text={msg.text} isLast={isLast} />
                 </div>
               )
-            )}
+            })}
 
             {/* Step option chips */}
             {phase === "flow" && optionsVisible && stepIndex < STEPS.length && (
@@ -879,7 +891,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                       ref={idx === 0 ? firstOptionRef : undefined}
                       type="button"
                       onClick={() => handleOption(opt)}
-                      className="w-full text-left px-4 py-2.5 rounded-2xl rounded-bl-md text-sm transition-all duration-300 focus-visible:outline-none"
+                      className="w-full text-left px-4 py-2.5 rounded-2xl text-sm transition-all duration-300 focus-visible:outline-none"
                       style={{
                         backgroundColor: isSelected ? "#2563EB" : "#111111",
                         color: "#FFFFFF",
@@ -930,10 +942,30 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       {(phase === "flow" || phase === "grounded" || phase === "summary") && (
         <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-2.5 border-t border-[#E5E5E5] bg-white">
           {/* Back — rounded outline button */}
-          {(phase === "flow" && stepIndex > 0) || phase === "summary" ? (
+          {(phase === "flow" && stepIndex > 0) || phase === "grounded" || phase === "summary" ? (
             <button
               type="button"
-              onClick={phase === "summary" ? goBackToGrounded : goBackOneStep}
+              onClick={
+                phase === "summary"
+                  ? goBackToGrounded
+                  : phase === "grounded"
+                  ? () => {
+                      // From grounded, go back to the last flow step (concern question)
+                      const prevAnswers = answers.slice(0, 3)
+                      setMessages((prev) => {
+                        // Remove everything after the last flow question (concern), which is the user's answer + status pill + Mia's grounded response(s)
+                        const lastFlowQ = [...prev].reverse().findIndex((m) => m.role === "mia" && m.text === STEPS[3].question)
+                        const cutIdx = lastFlowQ >= 0 ? prev.length - lastFlowQ : prev.length - 2
+                        return prev.slice(0, cutIdx)
+                      })
+                      setAnswers(prevAnswers)
+                      setStepIndex(3)
+                      setPhase("flow")
+                      setGroundedReady(false)
+                      setOptionsVisible(true)
+                    }
+                  : goBackOneStep
+              }
               className="flex items-center gap-1 px-3.5 py-1.5 rounded-full border border-[#CCCCCC] text-[#444444] text-[11px] font-semibold transition-colors hover:border-[#2563EB] hover:text-[#2563EB] focus-visible:outline-none"
               style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
@@ -953,6 +985,18 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           >
             Start Over
           </button>
+        </div>
+      )}
+
+      {/* Minimal Lumion footer on summary screen */}
+      {phase === "summary" && (
+        <div className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-2 border-t border-[#E5E5E5] bg-white">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2 8h4M2 12h20M2 16h4M8 4l-4 16M16 4l4 16" stroke="#AAAAAA" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span className="text-[10px] text-[#AAAAAA]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+            Powered by Lumion
+          </span>
         </div>
       )}
 
@@ -976,7 +1020,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               type="submit"
               disabled={!freeInput.trim() || freeAnswering}
               aria-label="Send question to Mia"
-              className="shrink-0 w-8 h-8 rounded-full bg-[#CCCCCC] flex items-center justify-center text-white hover:bg-[#2563EB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-[#CCCCCC]"
+              className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${freeInput.trim() && !freeAnswering ? "bg-[#2563EB] hover:bg-[#1d4ed8]" : "bg-[#CCCCCC] hover:bg-[#2563EB]"}`}
             >
               <Send size={13} />
             </button>
@@ -1663,32 +1707,46 @@ function EnrollmentView({
 function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
   return (
     <div
-      className={`relative flex flex-col overflow-hidden border border-[#E5E5E5] bg-white ${
+      className={`relative flex flex-col overflow-hidden border border-[#E0E0E0] bg-white ${
         compact ? "h-[560px]" : "h-full"
       }`}
-      style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}
+      style={{
+        fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+        boxShadow: "0 4px 24px -4px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)",
+      }}
     >
       {children}
     </div>
   )
 }
 
-function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
+function PanelHeader({ onReset, onClose, phase }: { onReset?: () => void; onClose?: () => void; phase?: Phase }) {
+  const statusText =
+    phase === "flow" ? "Fit Check in Progress" :
+    phase === "grounded" ? "Reviewing Your Answers" :
+    phase === "summary" ? "Fit Summary Ready" :
+    phase === "capture" ? "Almost Done — One More Step" :
+    phase === "handoff" ? "Connected to Enrollment" :
+    "Online · Ask me anything"
+
   return (
     <div className="px-4 py-3 border-b border-[#E5E5E5] bg-white flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
-        {/* WWA circular logo badge */}
-        <div className="w-9 h-9 rounded-full border-2 border-[#111] bg-white flex items-center justify-center shrink-0 overflow-hidden">
-          <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true">
-            <circle cx="20" cy="20" r="19" fill="#111" />
-            <text x="20" y="25" textAnchor="middle" fill="white" fontSize="11" fontWeight="900" fontFamily="sans-serif">WWA</text>
-          </svg>
+        {/* WWA circular logo badge with green online dot */}
+        <div className="relative shrink-0">
+          <div className="w-9 h-9 rounded-full border-2 border-[#111] bg-white flex items-center justify-center overflow-hidden">
+            <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true">
+              <circle cx="20" cy="20" r="19" fill="#111" />
+              <text x="20" y="25" textAnchor="middle" fill="white" fontSize="11" fontWeight="900" fontFamily="sans-serif">WWA</text>
+            </svg>
+          </div>
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" aria-hidden="true" />
         </div>
         <div className="leading-tight">
           <div className="text-[#111111] font-bold text-sm">
             Western Welding Academy
           </div>
-          <div className="text-[#888888] text-xs">Chat with Admissions Assistant...</div>
+          <div className="text-[#888888] text-[11px]">{statusText}</div>
         </div>
       </div>
       <div className="flex items-center gap-1.5">
@@ -1807,7 +1865,7 @@ function StatusPill({ text }: { text: string }) {
   )
 }
 
-function MiaBubble({ text }: { text: string }) {
+function MiaBubble({ text, isLast = true }: { text: string; isLast?: boolean }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex gap-2.5 items-end">
@@ -1821,17 +1879,19 @@ function MiaBubble({ text }: { text: string }) {
           {text}
         </div>
       </div>
-      <span
-        className="text-[10px] text-[#AAAAAA] ml-10 pl-0.5"
-        style={{ fontFamily: "var(--font-inter), sans-serif" }}
-      >
-        Admissions Assistant · AI Agent
-      </span>
+      {isLast && (
+        <span
+          className="text-[10px] text-[#AAAAAA] ml-10 pl-0.5"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
+        >
+          Admissions Assistant · AI Agent
+        </span>
+      )}
     </div>
   )
 }
 
-function UserBubble({ text }: { text: string }) {
+function UserBubble({ text, isLast = true }: { text: string; isLast?: boolean }) {
   return (
     <div className="flex flex-col items-end gap-1">
       <div
@@ -1840,12 +1900,14 @@ function UserBubble({ text }: { text: string }) {
       >
         {text}
       </div>
-      <span
-        className="text-[10px] text-[#AAAAAA] mr-0.5"
-        style={{ fontFamily: "var(--font-inter), sans-serif" }}
-      >
-        just now
-      </span>
+      {isLast && (
+        <span
+          className="text-[10px] text-[#AAAAAA] mr-0.5"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
+        >
+          just now
+        </span>
+      )}
     </div>
   )
 }
