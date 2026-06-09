@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { ArrowRight, Clock, DollarSign, TrendingUp } from "lucide-react"
+import { ArrowDown, ArrowRight, Clock, DollarSign, TrendingUp } from "lucide-react"
 import { openApplyModal } from "./ApplyModal"
 import { focusMia } from "./MiaPanel"
 
@@ -49,36 +49,53 @@ export default function Programs() {
     <section id="programs" className="py-24 bg-background">
       <div className="max-w-[1440px] mx-auto px-8">
         {/* Section header */}
-        <div className="flex items-end justify-between mb-12">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="h-px w-12 bg-primary" />
-              <span
-                className="text-primary text-xs font-bold tracking-[0.2em] uppercase"
-                style={{ fontFamily: "var(--font-barlow-condensed)" }}
-              >
-                Programs
-              </span>
-            </div>
-            <h2
-              className="text-foreground leading-tight uppercase tracking-tight"
-              style={{
-                fontFamily: "var(--font-barlow-condensed)",
-                fontSize: "clamp(2rem, 4vw, 3rem)",
-                fontWeight: 900,
-              }}
+        <div className="text-center mb-16 space-y-5">
+          {/* Eyebrow */}
+          <div className="flex items-center justify-center gap-4">
+            <div className="h-px w-16 bg-primary" />
+            <span
+              className="text-primary text-xs font-black tracking-[0.25em] uppercase"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
-              Choose Your Path
-            </h2>
+              Our Programs
+            </span>
+            <div className="h-px w-16 bg-primary" />
           </div>
-          <button
-            onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
-            className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+
+          {/* Primary title */}
+          <h2
+            className="text-foreground uppercase leading-none tracking-tight text-balance"
+            style={{
+              fontFamily: "var(--font-barlow-condensed)",
+              fontSize: "clamp(3rem, 7vw, 5.5rem)",
+              fontWeight: 900,
+              letterSpacing: "-0.01em",
+            }}
           >
-            Not sure which program?
-            <ArrowRight size={14} />
-          </button>
+            Your Future Starts Here.
+          </h2>
+
+          {/* Sub-headline */}
+          <p
+            className="text-muted-foreground uppercase font-bold tracking-[0.2em]"
+            style={{
+              fontFamily: "var(--font-barlow-condensed)",
+              fontSize: "clamp(0.85rem, 1.5vw, 1.1rem)",
+            }}
+          >
+            Choose Your Path. Forge Your Future.
+          </p>
+
+          {/* Scroll prompt */}
+          <div className="flex flex-col items-center gap-2 pt-4">
+            <span
+              className="text-muted-foreground/60 text-xs tracking-widest uppercase"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              Scroll to discover your welding program
+            </span>
+            <ArrowDown size={16} className="text-primary animate-bounce" />
+          </div>
         </div>
 
         {/* Program cards */}
@@ -191,6 +208,14 @@ export default function Programs() {
             className="text-primary hover:underline font-semibold"
           >
             Ask Mia about financing →
+          </button>
+          <span className="w-1 h-1 bg-muted-foreground rounded-full" />
+          <button
+            onClick={() => focusMia()}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors font-semibold"
+          >
+            Not sure which program?
+            <ArrowRight size={13} />
           </button>
         </div>
       </div>
