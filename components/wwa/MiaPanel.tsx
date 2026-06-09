@@ -508,7 +508,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   if (phase === "capture") {
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} />
+        <PanelHeader onReset={resetFlow} onClose={onClose} />
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
@@ -529,8 +529,22 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             <input
               id="mia-field-phone"
               type="tel"
+              inputMode="numeric"
               value={lead.phone}
-              onChange={(e) => setLead((prev) => ({ ...prev, phone: e.target.value }))}
+              onChange={(e) => {
+                // Strip everything that isn't a digit
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                // Format as (###) ###-####
+                let formatted = ""
+                if (digits.length <= 3) {
+                  formatted = digits.length ? `(${digits}` : ""
+                } else if (digits.length <= 6) {
+                  formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+                } else {
+                  formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+                }
+                setLead((prev) => ({ ...prev, phone: formatted }))
+              }}
               placeholder="(555) 000-0000"
               autoComplete="tel"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
@@ -593,9 +607,15 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             </div>
           </Field>
 
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Your answers help the advisor understand your goals before they reach out.
-          </p>
+          {/* Helper text — always visible before submit */}
+          <div className="border border-border/50 bg-secondary/30 px-3 py-2.5 space-y-1">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Your answers help the advisor understand your goals before they reach out.
+            </p>
+            <p className="text-[10px] text-muted-foreground/70">
+              {"We'll only use this to follow up about WWA programs. No spam."}
+            </p>
+          </div>
 
           <button
             type="button"
@@ -613,10 +633,6 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               Enter your name and phone number to continue.
             </p>
           )}
-
-          <p className="text-center text-[10px] text-muted-foreground pb-1">
-            {"We'll only use this to follow up about WWA programs. No spam."}
-          </p>
 
           <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
             <button
@@ -647,7 +663,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
   return (
     <PanelShell compact={compact}>
-      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} />
+      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
 
       {phase !== "idle" && (
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
