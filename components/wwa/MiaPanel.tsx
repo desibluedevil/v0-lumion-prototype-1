@@ -763,17 +763,17 @@ function FitSummaryCard({
         <button
           type="button"
           onClick={() => { window.location.href = "tel:18005551234" }}
-                  className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  Call Directly: 1-800-555-1234
+          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Call Directly: 1-800-555-1234
         </button>
       </div>
     </div>
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────────────────
+// ─── Student Confirmation ─────────────────────────────────────────��───────────
 
 function StudentConfirmation({
   lead,

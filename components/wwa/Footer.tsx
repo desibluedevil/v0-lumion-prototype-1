@@ -12,37 +12,37 @@ const COLUMNS = [
   {
     title: "Programs",
     links: [
-      { label: "Foundational Pipe Welder", action: () => scrollTo("programs") },
-      { label: "Professional Pipe Welder",  action: () => scrollTo("programs") },
-      { label: "Expert Pipe Welder",         action: () => scrollTo("programs") },
-      { label: "Program Comparison",         action: () => scrollTo("programs") },
+      { label: "Foundational Pipe Welder", action: () => scrollTo("programs"), active: true },
+      { label: "Professional Pipe Welder",  action: () => scrollTo("programs"), active: true },
+      { label: "Expert Pipe Welder",         action: () => scrollTo("programs"), active: true },
+      { label: "Program Comparison",         action: () => scrollTo("programs"), active: true },
     ],
   },
   {
     title: "Admissions",
     links: [
-      { label: "Apply Now",      action: openApplyModal },
-      { label: "Is WWA a Fit?",  action: () => focusMia() },
-      { label: "Financial Aid",  action: () => scrollTo("financial-aid") },
-      { label: "Housing Info",   action: () => scrollTo("proof") },
+      { label: "Apply Now",      action: openApplyModal,              active: true },
+      { label: "Is WWA a Fit?",  action: () => focusMia(),            active: true },
+      { label: "Financial Aid",  action: () => scrollTo("financial-aid"), active: true },
+      { label: "Housing Info",   action: () => scrollTo("financial-aid"), active: true },
     ],
   },
   {
     title: "Academy",
     links: [
-      { label: "About WWA",       action: () => scrollTo("proof") },
-      { label: "Faculty & Staff", action: () => scrollTo("proof") },
-      { label: "Campus Tour",     action: () => scrollTo("mia-section") },
-      { label: "Alumni",          action: () => scrollTo("proof") },
+      { label: "About WWA",       action: () => scrollTo("mission"),     active: true },
+      { label: "Faculty & Staff", action: () => scrollTo("mission"),     active: true },
+      { label: "Campus Tour",     action: () => scrollTo("mia-section"), active: true },
+      { label: "Alumni",          action: () => scrollTo("proof"),       active: true },
     ],
   },
   {
     title: "Connect",
     links: [
-      { label: "Events",                action: () => {} },
-      { label: "Blog",                  action: () => {} },
-      { label: "Career Opportunities",  action: () => {} },
-      { label: "Contact Us",            action: () => {} },
+      { label: "Events",               action: null, active: false },
+      { label: "Blog",                 action: null, active: false },
+      { label: "Career Opportunities", action: null, active: false },
+      { label: "Contact Us",           action: null, active: false },
     ],
   },
 ]
@@ -140,13 +140,23 @@ export default function Footer() {
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <button
-                      onClick={link.action}
-                      className="text-white/50 text-xs hover:text-primary transition-colors text-left leading-relaxed"
-                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                    >
-                      {link.label}
-                    </button>
+                    {link.active ? (
+                      <button
+                        onClick={link.action!}
+                        className="text-white/50 text-xs hover:text-primary transition-colors text-left leading-relaxed"
+                        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                      >
+                        {link.label}
+                      </button>
+                    ) : (
+                      <span
+                        className="text-white/20 text-xs cursor-default text-left leading-relaxed select-none"
+                        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                        title="Coming soon"
+                      >
+                        {link.label}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

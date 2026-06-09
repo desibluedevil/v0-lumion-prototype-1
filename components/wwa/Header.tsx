@@ -60,8 +60,8 @@ export default function Header() {
             {[
               { label: "Programs",     action: () => scrollTo("programs") },
               { label: "Financial Aid",action: () => scrollTo("financial-aid") },
-              { label: "Housing",      action: () => scrollTo("proof") },
-              { label: "About Us",     action: () => scrollTo("proof") },
+              { label: "Housing",      action: () => scrollTo("financial-aid") },
+              { label: "About Us",     action: () => scrollTo("mission") },
             ].map((item) => (
               <button
                 key={item.label}

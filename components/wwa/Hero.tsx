@@ -13,7 +13,7 @@ export default function Hero() {
      * The header is fixed and now has two tiers so we push content down
      * to clear both.
      */
-    <section className="pt-[calc(2.5rem+4rem)] min-h-screen flex items-stretch bg-background relative overflow-hidden">
+    <section className="pt-[calc(1.75rem+4rem)] min-h-screen flex items-stretch bg-background relative overflow-hidden">
 
       {/* Full-bleed background image + dark overlay */}
       <div className="absolute inset-0">
@@ -74,7 +74,7 @@ export default function Hero() {
                 <ArrowRight size={15} />
               </button>
               <button
-                onClick={() => document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => focusMia()}
                 className="px-8 py-3.5 border border-foreground/40 text-sm font-black tracking-widest uppercase text-foreground hover:border-foreground hover:bg-foreground/10 transition-colors"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >

@@ -29,7 +29,7 @@ const pillars = [
 
 export default function Mission() {
   return (
-    <section className="bg-card border-t border-border">
+    <section id="mission" className="bg-card border-t border-border">
       {/* Mission statement */}
       <div className="max-w-[1440px] mx-auto px-8 pt-20 pb-16">
         <div className="max-w-4xl">
