@@ -613,7 +613,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setLead((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="Your name"
               autoComplete="given-name"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full border border-[#2E2E2E] px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors"
+              style={{ backgroundColor: "#1A1A1A" }}
             />
           </Field>
 
@@ -639,9 +640,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               }}
               placeholder="(555) 000-0000"
               autoComplete="tel"
-              className={`w-full bg-input border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
-                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-border focus:border-primary"
+              className={`w-full border px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none transition-colors ${
+                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-[#2E2E2E] focus:border-primary"
               }`}
+              style={{ backgroundColor: "#1A1A1A" }}
             />
             {phonePartial && (
               <p className="text-[10px] text-red-400 mt-1">
@@ -658,7 +660,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setLead((prev) => ({ ...prev, email: e.target.value }))}
               placeholder="you@email.com"
               autoComplete="email"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full border border-[#2E2E2E] px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors"
+              style={{ backgroundColor: "#1A1A1A" }}
             />
           </Field>
 
@@ -673,9 +676,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                     onClick={() => setLead((prev) => ({ ...prev, contact: opt }))}
                     className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${
                       lead.contact === opt
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                        ? "border-primary text-white"
+                        : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
                     }`}
+                    style={lead.contact === opt ? { backgroundColor: "#2563EB" } : { backgroundColor: "#161616" }}
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
                     <Icon size={12} />
@@ -695,9 +699,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                   onClick={() => setLead((prev) => ({ ...prev, time: opt }))}
                   className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase transition-colors ${
                     lead.time === opt
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                      ? "border-primary text-white"
+                      : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
                   }`}
+                  style={lead.time === opt ? { backgroundColor: "#2563EB" } : { backgroundColor: "#161616" }}
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   {opt}
@@ -707,11 +712,11 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           </Field>
 
           {/* Helper text — always visible before submit */}
-          <div className="border border-border/50 bg-secondary/30 px-3 py-2.5 space-y-1">
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <div className="border border-[#2E2E2E] px-3 py-2.5 space-y-1" style={{ backgroundColor: "#161616" }}>
+            <p className="text-[11px] text-[#B0B0B0] leading-relaxed">
               Your answers help the advisor understand your goals before they reach out.
             </p>
-            <p className="text-[10px] text-muted-foreground/70">
+            <p className="text-[10px] text-[#B0B0B0]/70">
               {"We'll only use this to follow up about WWA programs. No spam."}
             </p>
           </div>
@@ -720,24 +725,24 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed hover:enabled:bg-primary/90"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="w-full py-3.5 font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110"
+            style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
           >
             Connect Me With Enrollment
             <ChevronRight size={15} />
           </button>
 
           {!canSubmit && (
-            <p className="text-center text-[10px] text-muted-foreground/60">
+            <p className="text-center text-[10px] text-[#B0B0B0]/60">
               Enter your name and phone number to continue.
             </p>
           )}
 
-          <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
+          <div className="flex items-center justify-between border-t border-[#2E2E2E] pt-3 mt-1">
             <button
               type="button"
               onClick={() => setPhase("summary")}
-              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] hover:text-white transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               <ChevronLeft size={11} />
@@ -746,7 +751,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             <button
               type="button"
               onClick={resetFlow}
-              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               <RotateCcw size={9} />
@@ -758,7 +763,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     )
   }
 
-  // ── Main flow / idle ───────────────��──────────────────────────────────────
+  // ── Main flow / idle ───────────���───��──────────────────────────────────────
 
   return (
     <PanelShell compact={compact}>
@@ -791,17 +796,18 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                     key={opt}
                     type="button"
                     onClick={() => handleOption(opt)}
-                    className="w-full text-left px-4 py-2.5 border border-border text-sm text-muted-foreground hover:border-primary hover:text-foreground hover:bg-secondary/40 transition-colors"
+                    className="w-full text-left px-4 py-2.5 border border-[#2E2E2E] text-sm text-[#B0B0B0] hover:border-primary hover:text-white transition-colors"
+                    style={{ backgroundColor: "#161616" }}
                   >
                     {opt}
                   </button>
                 ))}
-                <div className="flex items-center gap-3 pt-1 mt-1 border-t border-border/50">
+                <div className="flex items-center gap-3 pt-1 mt-1 border-t border-[#2E2E2E]">
                   {stepIndex > 0 ? (
                     <button
                       type="button"
                       onClick={goBackOneStep}
-                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] hover:text-white transition-colors"
                       style={{ fontFamily: "var(--font-barlow-condensed)" }}
                     >
                       <ChevronLeft size={11} />
@@ -811,7 +817,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                   <button
                     type="button"
                     onClick={resetFlow}
-                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
+                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors ml-auto"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
                     <RotateCcw size={9} />
@@ -823,12 +829,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
             {/* Grounded → See Fit Summary CTA */}
             {phase === "grounded" && groundedReady && (
-              <div className="ml-9 pt-1">
+              <div className="ml-9 pt-2 border-t border-[#2E2E2E]">
                 <button
                   type="button"
                   onClick={showFitSummary}
-                  className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  className="w-full py-3 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
+                  style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   See My Fit Summary
                   <ChevronRight size={15} />
@@ -853,7 +859,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
       {/* Freeform "Ask Mia" input — shown during flow and grounded phases only */}
       {(phase === "flow" || phase === "grounded") && (
-        <div className="px-5 pb-4 pt-2 border-t border-border/60 bg-background/95">
+        <div className="px-5 pb-4 pt-2.5 border-t border-[#2E2E2E]" style={{ backgroundColor: "#0F0F0F" }}>
           <form
             onSubmit={(e) => { e.preventDefault(); handleFreeInput() }}
             className="flex items-center gap-2"
@@ -864,13 +870,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setFreeInput(e.target.value)}
               placeholder="Ask Mia about cost, housing, experience, jobs, or programs…"
               disabled={freeAnswering}
-              className="flex-1 min-w-0 bg-secondary border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+              className="flex-1 min-w-0 border border-[#2E2E2E] px-3 py-2 text-xs text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "#1A1A1A" }}
             />
             <button
               type="submit"
               disabled={!freeInput.trim() || freeAnswering}
               aria-label="Send question to Mia"
-              className="shrink-0 w-8 h-8 flex items-center justify-center border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="shrink-0 w-8 h-8 flex items-center justify-center border border-[#2E2E2E] text-[#B0B0B0] hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Send size={13} />
             </button>
@@ -911,7 +918,7 @@ function IdleState({
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               {"Checking fit for: "}
-              <span className="text-foreground">{programContext}</span>
+              <span className="text-white">{programContext}</span>
             </p>
           </div>
         )}
@@ -920,11 +927,11 @@ function IdleState({
         <MiaBubble text="Tell me what you're trying to figure out. I'll check program fit, cost, housing, timeline, and whether an advisor should follow up." />
 
         {/* Mia's Plan card */}
-        <div className="ml-9 border border-border bg-secondary/30">
-          <div className="px-3 py-2 border-b border-border flex items-center gap-2">
+        <div className="ml-9 border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+          <div className="px-3 py-2 border-b border-[#2E2E2E] flex items-center gap-2">
             <Clipboard size={11} className="text-primary shrink-0" />
             <span
-              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              className="text-[10px] font-black tracking-widest uppercase text-white"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               Mia&apos;s Plan
@@ -934,12 +941,12 @@ function IdleState({
             {PLAN_STEPS.map(({ n, label }) => (
               <li key={n} className="flex items-start gap-2.5">
                 <span
-                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-border text-[9px] font-black text-muted-foreground mt-px"
+                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-[#2E2E2E] text-[9px] font-black text-[#B0B0B0] mt-px"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   {n}
                 </span>
-                <span className="text-xs text-muted-foreground leading-snug">{label}</span>
+                <span className="text-xs text-[#B0B0B0] leading-snug">{label}</span>
               </li>
             ))}
           </ol>
@@ -947,17 +954,17 @@ function IdleState({
       </div>
 
       {/* CTAs */}
-      <div className="pt-4 pb-1 space-y-2">
+      <div className="pt-4 pb-1 space-y-2 border-t border-[#2E2E2E] mt-4">
         <button
           type="button"
           onClick={onStart}
-          className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full py-3.5 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
+          style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
         >
           Start Fit Check
           <ChevronRight size={15} />
         </button>
-        <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+        <p className="text-center text-[10px] text-[#B0B0B0]/60 leading-relaxed">
           No pressure. If WWA is not the right fit, I&apos;ll say that.
         </p>
       </div>
@@ -1039,12 +1046,12 @@ function FitSummaryCard({
       {/* Title + subtitle */}
       <div>
         <h2
-          className="text-sm font-black tracking-widest uppercase text-foreground"
+          className="text-sm font-black tracking-widest uppercase text-white"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Your Fit Summary
         </h2>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+        <p className="text-[11px] text-[#B0B0B0] mt-0.5 leading-snug">
           Based on your goal, experience, timeline, and main concern.
         </p>
       </div>
@@ -1058,11 +1065,11 @@ function FitSummaryCard({
             ["All-in tuition", program.tuition],
           ].map(([l, v]) => (
             <div key={l} className="flex justify-between items-start gap-3 text-xs">
-              <span className="text-muted-foreground shrink-0">{l}</span>
-              <span className="font-semibold text-foreground text-right">{v}</span>
+              <span className="text-[#B0B0B0] shrink-0">{l}</span>
+              <span className="font-semibold text-white text-right">{v}</span>
             </div>
           ))}
-          <p className="text-[11px] text-muted-foreground/80 leading-snug pt-0.5">
+          <p className="text-[11px] text-[#B0B0B0]/70 leading-snug pt-0.5">
             Starting point is based on your experience level and stated goal.
           </p>
         </div>
@@ -1075,7 +1082,7 @@ function FitSummaryCard({
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-2 text-xs">
                 <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
-                <span className="text-foreground leading-snug">{b}</span>
+                <span className="text-white leading-snug">{b}</span>
               </li>
             ))}
           </ul>
@@ -1087,8 +1094,8 @@ function FitSummaryCard({
         <ul className="space-y-1.5">
           {questions.map((q) => (
             <li key={q} className="flex items-start gap-2 text-xs">
-              <span className="shrink-0 w-1 h-1 rounded-full bg-border mt-1.5" />
-              <span className="text-muted-foreground leading-snug italic">{q}</span>
+              <span className="shrink-0 w-1 h-1 rounded-full bg-[#2E2E2E] mt-1.5" />
+              <span className="text-[#B0B0B0] leading-snug italic">{q}</span>
             </li>
           ))}
         </ul>
@@ -1102,30 +1109,32 @@ function FitSummaryCard({
         >
           Suggested Next Step
         </p>
-        <p className="text-xs text-foreground font-semibold leading-snug">{nextStepText}</p>
+        <p className="text-xs text-white font-semibold leading-snug">{nextStepText}</p>
       </div>
 
       {/* Guardrail */}
-      <p className="text-[10px] text-muted-foreground/60 leading-relaxed px-0.5">
+      <p className="text-[10px] text-[#B0B0B0]/60 leading-relaxed px-0.5">
         This is a fit check, not an admissions decision.
       </p>
 
       {/* CTAs */}
-      <div className="space-y-2 pt-1">
-        <button
-          type="button"
-          onClick={onCapture}
-          className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Connect Me With Enrollment
-          <ChevronRight size={15} />
-        </button>
+      <div className="space-y-2 pt-1 border-t border-[#2E2E2E]">
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={onCapture}
+            className="w-full py-3 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
+            style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Connect Me With Enrollment
+            <ChevronRight size={15} />
+          </button>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             <ChevronLeft size={12} />
@@ -1133,7 +1142,7 @@ function FitSummaryCard({
           </button>
           <a
             href="tel:18005551234"
-            className="flex-1 py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center"
+            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Call Directly
@@ -1142,7 +1151,7 @@ function FitSummaryCard({
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           <RotateCcw size={10} />
@@ -1155,10 +1164,10 @@ function FitSummaryCard({
 
 function SummarySection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="border border-border bg-secondary/30">
-      <div className="px-3 py-2 border-b border-border">
+    <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+      <div className="px-3 py-2 border-b border-[#2E2E2E]">
         <span
-          className="text-[10px] font-black tracking-widest uppercase text-foreground"
+          className="text-[10px] font-black tracking-widest uppercase text-white"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           {label}
@@ -1207,21 +1216,21 @@ function StudentConfirmation({
       {/* ── YOU'RE ALL SET ─────────────────────────────────────────── */}
       <div className="pt-1">
         <h2
-          className="text-lg font-black tracking-widest uppercase text-foreground leading-tight"
+          className="text-lg font-black tracking-widest uppercase text-white leading-tight"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           {"You're all set."}
         </h2>
-        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+        <p className="text-xs text-[#B0B0B0] mt-1.5 leading-relaxed">
           {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
         </p>
       </div>
 
       {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
-      <div className="border border-border bg-secondary/30">
-        <div className="px-4 py-2.5 border-b border-border">
+      <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+        <div className="px-4 py-2.5 border-b border-[#2E2E2E]">
           <span
-            className="text-[10px] font-black tracking-widest uppercase text-foreground"
+            className="text-[10px] font-black tracking-widest uppercase text-white"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             What Mia Did
@@ -1233,36 +1242,37 @@ function StudentConfirmation({
               <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-primary/10 border border-primary/30">
                 <Check size={9} className="text-primary" />
               </div>
-              <span className="text-foreground">{item}</span>
+              <span className="text-white">{item}</span>
             </li>
           ))}
         </ul>
       </div>
 
       {/* ── WHAT THE ADVISOR WILL SEE ─────────────────────────────── */}
-      <div className="border border-border bg-secondary/30">
+      <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
         <button
           type="button"
           onClick={() => setProfileOpen((v) => !v)}
-          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-secondary/60 transition-colors"
+          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:brightness-110 transition-all"
+          style={{ backgroundColor: "#161616" }}
           aria-expanded={profileOpen}
         >
           <div className="flex items-center gap-2">
-            <Clipboard size={11} className="text-muted-foreground shrink-0" />
+            <Clipboard size={11} className="text-[#B0B0B0] shrink-0" />
             <span
-              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              className="text-[10px] font-black tracking-widest uppercase text-white"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               What the Advisor Will See
             </span>
           </div>
-          {profileOpen ? <ChevronUp size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
+          {profileOpen ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
         </button>
 
         {profileOpen && (
           <>
             {/* Student-readable summary fields */}
-            <div className="border-t border-border px-4 py-3 space-y-2">
+            <div className="border-t border-[#2E2E2E] px-4 py-3 space-y-2">
               {[
                 ["Name", lead.name],
                 ["Phone", lead.phone],
@@ -1274,8 +1284,8 @@ function StudentConfirmation({
                 ...(concern ? [["Main concern", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between items-start gap-4 text-xs">
-                  <span className="text-muted-foreground shrink-0">{label}</span>
-                  <span className="font-semibold text-foreground text-right">{value}</span>
+                  <span className="text-[#B0B0B0] shrink-0">{label}</span>
+                  <span className="font-semibold text-white text-right">{value}</span>
                 </div>
               ))}
             </div>
@@ -1300,7 +1310,7 @@ function StudentConfirmation({
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 border border-[#2E2E2E] text-xs font-black tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           <RotateCcw size={11} />
@@ -1310,7 +1320,7 @@ function StudentConfirmation({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             <X size={11} />
@@ -1419,15 +1429,15 @@ function EnrollmentView({
     <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between pb-3 border-b border-border gap-3">
+      <div className="flex items-start justify-between pb-3 border-b border-[#2E2E2E] gap-3">
         <div>
           <p
-            className="text-sm font-black tracking-widest uppercase text-foreground"
+            className="text-sm font-black tracking-widest uppercase text-white"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Enrollment Lead Profile
           </p>
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-snug">
+          <p className="text-[11px] text-[#B0B0B0]/70 mt-0.5 leading-snug">
             Generated by Mia from the student&apos;s fit check &middot;{" "}
             {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
@@ -1450,8 +1460,8 @@ function EnrollmentView({
           ["Recommended program", program.name],
         ].map(([l, v]) => (
           <div key={l} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{l}</span>
-            <span className="font-semibold text-foreground text-right">{v}</span>
+            <span className="text-[#B0B0B0] shrink-0">{l}</span>
+            <span className="font-semibold text-white text-right">{v}</span>
           </div>
         ))}
       </InfoSection>
@@ -1466,17 +1476,17 @@ function EnrollmentView({
           ["Fit signal", fitSignal],
         ].map(([l, v]) => (
           <div key={String(l)} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{l}</span>
-            <span className="font-semibold text-foreground text-right">{v}</span>
+            <span className="text-[#B0B0B0] shrink-0">{l}</span>
+            <span className="font-semibold text-white text-right">{v}</span>
           </div>
         ))}
       </InfoSection>
 
       {/* ── 3. Main Concern ───────────────────────────────────────── */}
       <InfoSection title="Main Concern">
-        <p className="text-xs font-semibold text-foreground mb-2">{concernLabel}</p>
+        <p className="text-xs font-semibold text-white mb-2">{concernLabel}</p>
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-muted-foreground mb-1.5"
+          className="text-[10px] font-black tracking-widest uppercase text-[#B0B0B0] mb-1.5"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Suggested Talking Points
@@ -1485,7 +1495,7 @@ function EnrollmentView({
           {concernPoints.map((pt) => (
             <li key={pt} className="flex items-start gap-2 text-xs">
               <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
-              <span className="text-muted-foreground leading-snug">{pt}</span>
+              <span className="text-[#B0B0B0] leading-snug">{pt}</span>
             </li>
           ))}
         </ul>
@@ -1493,7 +1503,7 @@ function EnrollmentView({
 
       {/* ── 4. Conversation Summary ───────────────────────────────── */}
       <InfoSection title="Conversation Summary">
-        <p className="text-xs text-muted-foreground leading-relaxed">{conversationSummary}</p>
+        <p className="text-xs text-[#B0B0B0] leading-relaxed">{conversationSummary}</p>
       </InfoSection>
 
       {/* ── 5. Recommended Next Best Action ──────────────────────── */}
@@ -1504,18 +1514,18 @@ function EnrollmentView({
         >
           Recommended Next Best Action
         </p>
-        <p className="text-xs text-foreground font-semibold leading-snug">{nextAction}</p>
+        <p className="text-xs text-white font-semibold leading-snug">{nextAction}</p>
       </div>
 
       {/* ── 6. Suggested Advisor Opener ───────────────────────────── */}
       <InfoSection title="Suggested Advisor Opener">
-        <p className="text-xs text-foreground italic leading-relaxed">{advisorScript}</p>
+        <p className="text-xs text-white italic leading-relaxed">{advisorScript}</p>
       </InfoSection>
 
       {/* ── Actions ───────────────────────────────────────────────── */}
       <div className="space-y-2 pt-1">
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-muted-foreground"
+          className="text-[10px] font-black tracking-widest uppercase text-[#B0B0B0]"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Actions
@@ -1529,8 +1539,8 @@ function EnrollmentView({
             <button
               key={label}
               type="button"
-              className="py-3 border border-border text-[10px] font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              className="py-3 border border-[#2E2E2E] text-[10px] font-black tracking-widest uppercase text-[#B0B0B0] hover:border-primary hover:text-white transition-colors flex flex-col items-center gap-1.5"
+              style={{ fontFamily: "var(--font-barlow-condensed)", backgroundColor: "#161616" }}
             >
               <Icon size={13} />
               {label}
@@ -1547,9 +1557,10 @@ function EnrollmentView({
 function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
   return (
     <div
-      className={`flex flex-col bg-card border border-border overflow-hidden ${
+      className={`flex flex-col overflow-hidden border border-[#2E2E2E] ${
         compact ? "h-[560px]" : "h-full"
       }`}
+      style={{ backgroundColor: "#0F0F0F" }}
     >
       {children}
     </div>
@@ -1558,7 +1569,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
 
 function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
   return (
-    <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+    <div className="px-4 py-3 border-b border-[#2E2E2E] flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 bg-primary flex items-center justify-center shrink-0">
           <span
@@ -1570,24 +1581,24 @@ function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () 
         </div>
         <div className="leading-tight">
           <div
-            className="text-foreground font-black text-xs tracking-widest uppercase"
+            className="text-white font-black text-xs tracking-widest uppercase"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Mia — Enrollment Assistant
           </div>
-          <div className="text-muted-foreground text-[10px]">Western Welding Academy</div>
+          <div className="text-[#B0B0B0] text-[10px]">Western Welding Academy</div>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] text-muted-foreground">Online</span>
+          <span className="text-[10px] text-[#B0B0B0]">Online</span>
         </div>
         {onReset && (
           <button
             type="button"
             onClick={onReset}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 text-[#B0B0B0] hover:text-white transition-colors"
             title="Start over"
             aria-label="Start over"
           >
@@ -1598,7 +1609,7 @@ function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () 
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 text-[#B0B0B0] hover:text-white transition-colors"
             title="Close panel"
             aria-label="Close Mia panel"
           >
@@ -1624,7 +1635,7 @@ function StepProgress({
   const summaryActive = phase === "summary" || phase === "capture"
   const flowDone = phase === "grounded" || summaryActive
   return (
-    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-1.5">
+    <div className="px-4 py-2 border-b border-[#2E2E2E] shrink-0 flex items-center gap-1.5">
       {PROGRESS_STEPS.map((label, i) => {
         const isSummaryStep = i === PROGRESS_STEPS.length - 1
         const isDone = isSummaryStep ? false : flowDone || i < answersCount
@@ -1634,12 +1645,12 @@ function StepProgress({
             <div className="w-full flex flex-col gap-0.5">
               <div
                 className={`h-0.5 transition-colors ${
-                  isDone || isActive ? "bg-primary" : "bg-border"
+                  isDone || isActive ? "bg-primary" : "bg-[#2E2E2E]"
                 }`}
               />
               <span
                 className={`text-[10px] font-bold tracking-widest uppercase truncate ${
-                  isDone || isActive ? "text-primary" : "text-muted-foreground/40"
+                  isDone || isActive ? "text-primary" : "text-[#B0B0B0]/50"
                 }`}
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
@@ -1671,7 +1682,7 @@ function StatusPill({ text }: { text: string }) {
 function MiaBubble({ text }: { text: string }) {
   return (
     <div className="flex gap-2.5">
-      <div className="w-6 h-6 bg-primary shrink-0 flex items-center justify-center mt-0.5">
+      <div className="w-6 h-6 bg-primary shrink-0 flex items-center justify-center mt-0.5 rounded-sm">
         <span
           className="text-primary-foreground text-[8px] font-black"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -1679,7 +1690,10 @@ function MiaBubble({ text }: { text: string }) {
           M
         </span>
       </div>
-      <div className="bg-secondary px-3.5 py-2.5 text-sm text-foreground leading-relaxed whitespace-pre-wrap max-w-[88%]">
+      <div
+        className="px-3.5 py-2.5 text-sm text-white leading-relaxed whitespace-pre-wrap max-w-[88%] rounded-md rounded-tl-none"
+        style={{ backgroundColor: "#1A1A1A" }}
+      >
         {text}
       </div>
     </div>
@@ -1689,7 +1703,10 @@ function MiaBubble({ text }: { text: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] bg-primary text-primary-foreground">
+      <div
+        className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] text-white rounded-md rounded-tr-none"
+        style={{ backgroundColor: "#262626" }}
+      >
         {text}
       </div>
     </div>
@@ -1712,7 +1729,7 @@ function Field({
     return (
       <fieldset className="space-y-1 border-0 p-0 m-0">
         <legend
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1"
+          className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] flex items-center gap-1"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           {label}
@@ -1726,7 +1743,7 @@ function Field({
     <div className="space-y-1">
       <label
         htmlFor={id}
-        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1"
+        className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] flex items-center gap-1"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >
         {label}
@@ -1741,12 +1758,12 @@ function InfoSection({ title, children }: { title: string; children: React.React
   return (
     <div className="space-y-1.5">
       <p
-        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+        className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >
         {title}
       </p>
-      <div className="border border-border bg-secondary p-3 space-y-1.5">{children}</div>
+      <div className="border border-[#2E2E2E] p-3 space-y-1.5" style={{ backgroundColor: "#161616" }}>{children}</div>
     </div>
   )
 }
