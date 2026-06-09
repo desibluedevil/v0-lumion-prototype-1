@@ -1,6 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Barlow_Condensed, Barlow, Geist_Mono } from 'next/font/google'
+import { Barlow_Condensed, Barlow, Geist_Mono, Inter } from 'next/font/google'
 import './globals.css'
 
 const barlowCondensed = Barlow_Condensed({
@@ -18,6 +18,12 @@ const barlow = Barlow({
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+})
+
+const inter = Inter({
+  variable: '--font-inter',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
 })
 
 export const viewport: Viewport = {
@@ -40,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${barlow.variable} ${barlowCondensed.variable} ${geistMono.variable} bg-background`}
+      className={`${barlow.variable} ${barlowCondensed.variable} ${geistMono.variable} ${inter.variable} bg-background`}
     >
       <body className="font-sans antialiased">
         {children}
