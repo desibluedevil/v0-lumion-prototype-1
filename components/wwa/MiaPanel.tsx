@@ -266,7 +266,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setMessages([
       {
         role: "mia",
-        text: "I'll ask 4 questions to figure out if WWA is a realistic fit for you. Honest answers only — I'll tell you straight if it's not the right move.",
+        text: "Honest answers only — I'll tell you straight if WWA isn't the right move.",
       },
     ])
     setTimeout(() => {
@@ -496,6 +496,10 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Your answers help the advisor understand your goals before they reach out.
+          </p>
+
           <button
             type="button"
             onClick={handleSubmit}
@@ -503,7 +507,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed hover:enabled:bg-primary/90"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            Send to Enrollment Team
+            Connect Me With Enrollment
             <ChevronRight size={15} />
           </button>
 
@@ -514,7 +518,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
           )}
 
           <p className="text-center text-[10px] text-muted-foreground pb-1">
-            No spam. One follow-up from a real advisor.
+            {"We'll only use this to follow up about WWA programs. No spam."}
           </p>
         </div>
       </PanelShell>
@@ -645,7 +649,7 @@ function IdleState({
           className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          Start Fit Check — 2 Min
+          Start Fit Check
           <ChevronRight size={15} />
         </button>
       </div>

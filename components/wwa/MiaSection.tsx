@@ -71,9 +71,6 @@ export default function MiaSection() {
               See If WWA Is a Fit
               <ArrowRight size={16} />
             </button>
-            <p className="text-muted-foreground text-xs tracking-wide -mt-5">
-              No account. No commitment. Just a straight answer.
-            </p>
           </div>
 
           {/* Right — facility photo — 6 cols */}

@@ -62,7 +62,7 @@ export default function Header() {
             className="px-5 py-2 border border-border text-sm font-bold tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            See If It&apos;s a Fit
+            See If WWA Is a Fit
           </button>
           <button
             onClick={openApplyModal}

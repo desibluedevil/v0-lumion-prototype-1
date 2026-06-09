@@ -170,7 +170,7 @@ export default function Programs() {
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   <span className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black tracking-widest">M</span>
-                  Ask Mia if this fits me
+                  See If WWA Is a Fit
                 </button>
               </div>
             </div>
