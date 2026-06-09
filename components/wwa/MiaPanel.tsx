@@ -172,12 +172,7 @@ type FocusMiaListener = (programName?: string) => void
 const focusMiaListeners = new Set<FocusMiaListener>()
 
 export function focusMia(programName?: string) {
-  const el = document.getElementById("hero-mia")
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" })
-    el.style.outline = "2px solid var(--color-primary)"
-    setTimeout(() => { el.style.outline = "" }, 1200)
-  }
+  // Panel is now a fixed overlay — just notify listeners; no scroll needed.
   focusMiaListeners.forEach((fn) => fn(programName))
 }
 
@@ -217,15 +212,16 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   const [submitted, setSubmitted] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Track whether the user has scrolled up manually so we don't hijack their position.
+  // Reset to false whenever a phase change happens (new screen = resume auto-scroll).
+  const userScrolledUp = useRef(false)
 
   // Register this panel as a focusMia listener
   useEffect(() => {
     const handler: FocusMiaListener = (name) => {
       setProgramContext(name ?? null)
-      // If idle, auto-start (the context label will show in IdleState briefly,
-      // then startFlow will run). If already in a flow, just update context.
       setPhase((prev) => {
-        if (prev === "idle") return "idle" // IdleState renders context label; user clicks Start
+        if (prev === "idle") return "idle"
         return prev
       })
     }
@@ -240,20 +236,52 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   // Required: name + phone. contact and time have pre-selected defaults so always satisfied.
   const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0 && !submitted
 
-  // Auto-scroll: for capture/handoff phases (separate full-panel render) go to top;
-  // for all others (idle, flow, grounded, summary) scroll to bottom so new content is visible.
-  // Uses rAF to ensure DOM has painted before reading scrollHeight.
+  // ── User-scroll detection ──────────────────────────────────────────────────
+  // When the user scrolls up more than 40px from the bottom we stop auto-scrolling.
+  // When they reach the bottom again we re-enable it.
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    requestAnimationFrame(() => {
-      if (phase === "capture" || phase === "handoff") {
-        el.scrollTo({ top: 0, behavior: "smooth" })
-      } else {
-        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+    function onScroll() {
+      if (!el) return
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+      userScrolledUp.current = distFromBottom > 40
+    }
+    el.addEventListener("scroll", onScroll, { passive: true })
+    return () => el.removeEventListener("scroll", onScroll)
+  }, [phase]) // re-attach when phase changes (new scrollRef target may render)
+
+  // ── Auto-scroll via MutationObserver ──────────────────────────────────────
+  // Fires after every DOM mutation inside the scroll container so we scroll
+  // after each new message bubble or option chip finishes painting — not just
+  // on React state changes (which precede the paint).
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    function scrollToBottom(smooth: boolean) {
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "instant" })
+    }
+
+    // On phase change always reset user-scroll flag and jump to the right position.
+    userScrolledUp.current = false
+    if (phase === "capture" || phase === "handoff") {
+      el.scrollTo({ top: 0, behavior: "smooth" })
+    } else {
+      scrollToBottom(false)
+    }
+
+    // Watch for DOM mutations (new children added = new messages / chips)
+    const observer = new MutationObserver(() => {
+      if (phase === "capture" || phase === "handoff") return
+      if (!userScrolledUp.current) {
+        scrollToBottom(true)
       }
     })
-  }, [messages, phase, optionsVisible, groundedReady])
+    observer.observe(el, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [phase])
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -1057,7 +1085,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
   return (
     <div
       className={`flex flex-col bg-card border border-border overflow-hidden ${
-        compact ? "h-[560px]" : "h-[600px]"
+        compact ? "h-[560px]" : "h-full"
       }`}
     >
       {children}
