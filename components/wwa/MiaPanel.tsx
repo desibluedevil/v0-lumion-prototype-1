@@ -366,6 +366,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     }
   }, [optionsVisible, stepIndex])
 
+
+
   // ── User-scroll detection ──────────────────────────────────────────────────
   // When the user scrolls up more than 40px from the bottom we stop auto-scrolling.
   // When they reach the bottom again we re-enable it.
@@ -605,12 +607,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       setMessages((prev) => [
         ...prev,
         { role: "mia", text: answer },
-        { role: "status", text: "Returning to your fit check…" },
+        // In idle phase there's no fit check to return to — skip the status pill
+        ...(capturedPhase !== "idle" ? [{ role: "status" as const, text: "Returning to your fit check…" }] : []),
       ])
       setTimeout(() => {
         if (gen.current !== myGen) return
         setFreeAnswering(false)
-        // Only re-show options if still in the guided flow phase (not grounded/summary)
+        // Only re-show options if still in the guided flow (not idle/grounded/summary)
         if (capturedPhase === "flow" && capturedStepIndex < STEPS.length) {
           setOptionsVisible(true)
         }
@@ -843,7 +846,21 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {phase === "idle" ? (
-          <IdleState onStart={startFlow} programContext={programContext} />
+          <>
+            <IdleState onStart={startFlow} programContext={programContext} />
+            {/* Freeform Q&A messages accumulate below the IdleState CTA so they
+                are naturally at the bottom of the scroll area — MutationObserver
+                auto-scrolls to show them as they arrive. */}
+            {messages.length > 0 && messages.map((msg, i) =>
+              msg.role === "mia" ? (
+                <MiaBubble key={i} text={msg.text} />
+              ) : msg.role === "status" ? (
+                <StatusPill key={i} text={msg.text} />
+              ) : (
+                <UserBubble key={i} text={msg.text} />
+              )
+            )}
+          </>
         ) : (
           <>
             {messages.map((msg, i) =>
@@ -954,8 +971,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         </div>
       )}
 
-      {/* Freeform "Ask Mia" input — shown during flow and grounded phases only */}
-      {(phase === "flow" || phase === "grounded") && (
+      {/* Freeform "Ask Mia" input — shown on idle, flow, and grounded phases */}
+      {(phase === "idle" || phase === "flow" || phase === "grounded") && (
         <div className="px-5 pb-4 pt-2.5 border-t border-[#2E2E2E]" style={{ backgroundColor: "#0F0F0F" }}>
           <form
             onSubmit={(e) => { e.preventDefault(); handleFreeInput() }}
@@ -1004,8 +1021,8 @@ function IdleState({
   programContext?: string | null
 }) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="space-y-3 pt-1 flex-1">
+    <div className="flex flex-col">
+      <div className="space-y-3 pt-1">
         {/* Program context label — only shown when launched from a card */}
         {programContext && (
           <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30">
