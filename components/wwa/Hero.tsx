@@ -104,7 +104,7 @@ export default function Hero() {
               </span>
               <div className="h-4 w-px bg-border" />
               <span className="text-muted-foreground text-sm">
-                <strong className="text-foreground">94%</strong> get hired
+                <strong className="text-foreground">94%</strong> reported hire rate
               </span>
             </div>
           </div>

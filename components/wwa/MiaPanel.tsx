@@ -279,11 +279,10 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     if (stepIndex === 0) return
     const prevStep = stepIndex - 1
     const prevAnswers = answers.slice(0, prevStep)
-    // Remove the last user bubble and the last Mia question bubble for this step
-    setMessages((prev) => {
-      // Drop the last Mia question + last user answer (2 messages)
-      return prev.slice(0, prev.length - 2)
-    })
+    // When Back is pressed, optionsVisible is true — the last message is the
+    // current Mia question. The user has NOT yet answered, so we only drop 1
+    // message (the Mia question), not 2.
+    setMessages((prev) => prev.slice(0, prev.length - 1))
     setAnswers(prevAnswers)
     setStepIndex(prevStep)
     setOptionsVisible(true)
@@ -763,7 +762,7 @@ function FitSummaryCard({
         </button>
         <button
           type="button"
-          onClick={() => window.open("tel:18005551234")}
+          onClick={() => { window.location.href = "tel:18005551234" }}
                   className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
@@ -955,7 +954,7 @@ function EnrollmentView({
           ["Name", lead.name || "—"],
           ["Phone", lead.phone || "—"],
           ["Email", lead.email || "Not provided"],
-          ["Contact pref.", `${lead.contact} · ${lead.time}s`],
+          ["Contact pref.", `${lead.contact} · ${lead.time}`],
           ["Program", program.name],
           ["Tuition", program.tuition],
           ["Duration", program.duration],
