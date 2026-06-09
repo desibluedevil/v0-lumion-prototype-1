@@ -26,18 +26,18 @@ const STEPS = [
       "Get into pipeline / travel welding",
       "Learn a trade without going to college",
       "Upgrade my current welding skills",
-      "Not sure yet — just exploring",
+      "Not sure yet",
     ],
   },
   {
     id: "experience",
     label: "Experience",
-    question: "How much welding experience do you have right now?",
+    question: "How much welding experience do you have?",
     options: [
       "None — complete beginner",
       "Some shop class or hobby welding",
       "Welded on the job before",
-      "Experienced welder — want advanced certs",
+      "Experienced welder",
     ],
   },
   {
@@ -48,7 +48,7 @@ const STEPS = [
       "ASAP — I'm ready now",
       "Next 30–90 days",
       "Later this year",
-      "Just researching for now",
+      "Just researching",
     ],
   },
   {
@@ -68,28 +68,28 @@ const STEPS = [
 const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
   "Cost — can I afford it?": {
     headline: "Programs range from $17,050 to $35,800. Housing, tools, and materials are included.",
-    body: "No surprise costs after enrollment. Financing and payment plans are available. Most WWA graduates break even within 8 months of their first job.",
+    body: "Financing may be available for qualified applicants.",
   },
   "Location — can I move to Wyoming?": {
-    headline: "Housing is included in tuition. We handle the logistics.",
-    body: "Every student gets a fully furnished home near campus in Gillette, WY. Over 2,000 students have relocated here from across the country. The move is part of the deal.",
+    headline: "WWA is in Gillette, Wyoming, and housing is included so students can relocate for training.",
+    body: "Over 2,000 students have relocated from across the country. The housing is part of the program.",
   },
   "Experience — do I need prior skills?": {
-    headline: "Zero experience required for our Foundational program.",
-    body: "WWA trains from the ground up. You don't need to have touched a welder before. The Foundational program is built specifically for beginners.",
+    headline: "Prior welding experience is not required for the beginner path.",
+    body: "The Foundational Pipe Welder program starts from zero.",
   },
   "Outcome — will I actually get hired?": {
-    headline: "94% of WWA graduates get hired. The pipeline industry is actively short-staffed.",
-    body: "We connect students with employers before graduation. Pipeline welders earn $80K–$150K+. This is not a soft promise — it's a track record across 2,000+ graduates.",
+    headline: "WWA highlights a 94% hire rate and starting salary ranges by program.",
+    body: "No school should guarantee a job, but WWA has strong graduate outcomes across 2,000+ graduates.",
   },
   "Fit — which program is right for me?": {
-    headline: "Three programs. One will match your background.",
-    body: "Foundational (12 wks) for beginners. Professional Pipe (19 wks) for career changers with trade background. Expert Pipe (24 wks) for experienced welders chasing top-tier certifications.",
+    headline: "Based on your experience and goals, Mia can recommend which program to explore first.",
+    body: "Foundational (12 wks) for beginners. Professional Pipe (19 wks) for career changers. Expert Pipe (24 wks) for experienced welders.",
   },
 }
 
 function recommendProgram(experience: string): { name: string; duration: string; tuition: string } {
-  if (experience.includes("Experienced"))
+  if (experience === "Experienced welder")
     return { name: "Expert Pipe Welder", duration: "24 weeks", tuition: "$35,800" }
   if (experience.includes("on the job"))
     return { name: "Professional Pipe Welder", duration: "19 weeks", tuition: "$27,600" }
@@ -109,7 +109,7 @@ function buildAdvisorOpener(answers: string[], leadName: string): string {
     ? "no prior welding experience"
     : experience?.includes("on the job")
     ? "some on-the-job welding experience"
-    : experience?.includes("Experienced")
+    : experience === "Experienced welder"
     ? "significant welding experience"
     : "some welding background"
   const timeShort = timeline?.includes("ASAP")
@@ -754,7 +754,7 @@ function StudentConfirmation({
           className="w-full py-2.5 border border-primary text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          View Enrollment Lead Profile
+          View What Was Sent
         </button>
         <button
           type="button"
