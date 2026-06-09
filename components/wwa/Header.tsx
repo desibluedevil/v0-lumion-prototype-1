@@ -60,7 +60,7 @@ export default function Header() {
             {[
               { label: "Programs",     action: () => scrollTo("programs") },
               { label: "Financial Aid",action: () => scrollTo("financial-aid") },
-              { label: "Housing",      action: () => scrollTo("financial-aid") },
+              { label: "Housing",      action: () => scrollTo("mia-section") },
               { label: "About Us",     action: () => scrollTo("mission") },
             ].map((item) => (
               <button

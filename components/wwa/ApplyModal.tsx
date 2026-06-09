@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { X, ArrowRight, Phone } from "lucide-react"
 
 // ── Simple event bus so any component can trigger the modal ──────────────────
@@ -21,14 +21,14 @@ export default function ApplyModal() {
 
   const canSubmit = name.trim().length > 0 && phone.trim().length > 0 && !submitted
 
-  function handleClose() {
+  const handleClose = useCallback(() => {
     setOpen(false)
     // Reset form on close so it's fresh next time
     setName("")
     setPhone("")
     setProgram("")
     setSubmitted(false)
-  }
+  }, [])
 
   useEffect(() => {
     const handler = () => setOpen(true)
@@ -40,7 +40,7 @@ export default function ApplyModal() {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose() }
     if (open) document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-  }, [open])
+  }, [open, handleClose])
 
   if (!open) return null
 

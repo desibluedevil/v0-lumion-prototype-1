@@ -198,7 +198,7 @@ export default function Programs() {
                     className="w-full py-3 border-2 border-black text-black text-xs font-black tracking-[0.18em] uppercase hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-2"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
-                    <span className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black">M</span>
+                    <span aria-hidden="true" className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black">M</span>
                     See If WWA Is a Fit
                   </button>
                 </div>

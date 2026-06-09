@@ -240,12 +240,19 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   // Required: name + phone. contact and time have pre-selected defaults so always satisfied.
   const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0 && !submitted
 
-  // Auto-scroll to bottom on every state change that produces new content
+  // Auto-scroll: for capture/handoff phases (separate full-panel render) go to top;
+  // for all others (idle, flow, grounded, summary) scroll to bottom so new content is visible.
+  // Uses rAF to ensure DOM has painted before reading scrollHeight.
   useEffect(() => {
     const el = scrollRef.current
-    if (el) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
-    }
+    if (!el) return
+    requestAnimationFrame(() => {
+      if (phase === "capture" || phase === "handoff") {
+        el.scrollTo({ top: 0, behavior: "smooth" })
+      } else {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+      }
+    })
   }, [messages, phase, optionsVisible, groundedReady])
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -420,6 +427,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
           <Field label="First name" required>
             <input
+              id="mia-field-first-name"
               type="text"
               value={lead.name}
               onChange={(e) => setLead((prev) => ({ ...prev, name: e.target.value }))}
@@ -431,6 +439,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
           <Field label="Phone" required>
             <input
+              id="mia-field-phone"
               type="tel"
               value={lead.phone}
               onChange={(e) => setLead((prev) => ({ ...prev, phone: e.target.value }))}
@@ -442,6 +451,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
           <Field label="Email (optional)">
             <input
+              id="mia-field-email-(optional)"
               type="email"
               value={lead.email}
               onChange={(e) => setLead((prev) => ({ ...prev, email: e.target.value }))}
@@ -451,7 +461,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             />
           </Field>
 
-          <Field label="Best way to reach you" required>
+          <Field label="Best way to reach you" required asGroup>
             <div className="flex gap-2">
               {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
                 const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
@@ -475,7 +485,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
-          <Field label="Best time to reach you" required>
+          <Field label="Best time to reach you" required asGroup>
             <div className="flex gap-2">
               {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
                 <button
@@ -760,20 +770,19 @@ function FitSummaryCard({
           <ChevronLeft size={12} />
           Edit Answers
         </button>
-        <button
-          type="button"
-          onClick={() => { window.location.href = "tel:18005551234" }}
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+        <a
+          href="tel:18005551234"
+          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Call Directly: 1-800-555-1234
-        </button>
+        </a>
       </div>
     </div>
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────��─────────���─
+// ─── Student Confirmation ─────────────────────────────────────────��─────���───���─
 
 function StudentConfirmation({
   lead,
@@ -1173,15 +1182,33 @@ function UserBubble({ text }: { text: string }) {
 function Field({
   label,
   required,
+  asGroup,
   children,
 }: {
   label: string
   required?: boolean
+  asGroup?: boolean
   children: React.ReactNode
 }) {
+  const id = `mia-field-${label.toLowerCase().replace(/[\s()]/g, "-")}`
+  if (asGroup) {
+    return (
+      <fieldset className="space-y-1 border-0 p-0 m-0">
+        <legend
+          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          {label}
+          {required && <span className="text-primary">*</span>}
+        </legend>
+        {children}
+      </fieldset>
+    )
+  }
   return (
     <div className="space-y-1">
       <label
+        htmlFor={id}
         className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >

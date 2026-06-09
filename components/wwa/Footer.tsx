@@ -24,7 +24,7 @@ const COLUMNS = [
       { label: "Apply Now",      action: openApplyModal,              active: true },
       { label: "Is WWA a Fit?",  action: () => focusMia(),            active: true },
       { label: "Financial Aid",  action: () => scrollTo("financial-aid"), active: true },
-      { label: "Housing Info",   action: () => scrollTo("financial-aid"), active: true },
+      { label: "Housing Info",   action: () => scrollTo("mia-section"),   active: true },
     ],
   },
   {
