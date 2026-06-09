@@ -532,7 +532,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
-    // Scroll to the anchor after the DOM has painted the new bubble
+    // Scroll to the "Yes — show me the summary" anchor so "Your Answers" renders
+    // at the top of the visible area. User can scroll down to see the full card.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scrollToAnchor(summaryAnchorRef)
@@ -585,6 +586,9 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const q = freeInput.trim()
     if (!q || freeAnswering) return
     const myGen = gen.current // don't bump — we're not resetting the guided flow
+    // Snapshot phase and stepIndex at call time to avoid stale closure in the timeout
+    const capturedPhase = phase
+    const capturedStepIndex = stepIndex
 
     setFreeInput("")
     setFreeAnswering(true)
@@ -607,7 +611,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         if (gen.current !== myGen) return
         setFreeAnswering(false)
         // Only re-show options if still in the guided flow phase (not grounded/summary)
-        if (phase === "flow" && stepIndex < STEPS.length) {
+        if (capturedPhase === "flow" && capturedStepIndex < STEPS.length) {
           setOptionsVisible(true)
         }
       }, 500)
@@ -872,7 +876,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                       className="w-full text-left px-4 py-2.5 border text-sm transition-all duration-300 focus-visible:outline-none focus-visible:border-primary focus-visible:text-white"
                       style={{
                         backgroundColor: isSelected ? "#2563EB" : "#161616",
-                        borderColor: isSelected ? "#2563EB" : "#2E2E2E",
+                        borderColor: isSelected ? "#2563EB" : "#3A3A3A",
                         color: isSelected ? "#FFFFFF" : "#B0B0B0",
                       }}
                     >
@@ -904,7 +908,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                 answers={answers}
                 program={program}
                 intent={intent}
-                onCapture={() => setPhase("capture")}
+                onCapture={() => {
+                  setMessages((prev) => [...prev, { role: "user", text: "Connect me with enrollment" }])
+                  setPhase("capture")
+                }}
                 onBack={goBackToGrounded}
                 onReset={resetFlow}
               />
@@ -914,16 +921,16 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       </div>
 
       {/* Back / Start Over nav bar — sticky at the bottom of the guided flow */}
-      {(phase === "flow" || phase === "grounded") && (
+      {(phase === "flow" || phase === "grounded" || phase === "summary") && (
         <div
           className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
           style={{ backgroundColor: "#0F0F0F" }}
         >
           {/* Back — rounded outline button, white border + text */}
-          {phase === "flow" && stepIndex > 0 ? (
+          {(phase === "flow" && stepIndex > 0) || phase === "summary" ? (
             <button
               type="button"
-              onClick={goBackOneStep}
+              onClick={phase === "summary" ? goBackToGrounded : goBackOneStep}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
@@ -1119,7 +1126,7 @@ function FitSummaryCard({
   onBack: () => void
   onReset: () => void
 }) {
-  const [, , , concern] = answers
+  const [goal, experience, timeline, concern] = answers
   const bullets = whyBullets(answers)
   const questions = suggestedQuestions(concern)
 
@@ -1145,6 +1152,25 @@ function FitSummaryCard({
           Based on your goal, experience, timeline, and main concern.
         </p>
       </div>
+
+      {/* Section 0 — Your Answers */}
+      <SummarySection label="Your Answers">
+        <div className="space-y-1.5">
+          {[
+            ["Goal", goal],
+            ["Experience", experience],
+            ["Timeline", timeline],
+            ["Main concern", concern?.replace(/\s*—.*$/, "").trim()],
+          ]
+            .filter(([, v]) => Boolean(v))
+            .map(([l, v]) => (
+              <div key={l} className="flex justify-between items-start gap-3 text-xs">
+                <span className="text-[#B0B0B0] shrink-0">{l}</span>
+                <span className="font-semibold text-white text-right">{v}</span>
+              </div>
+            ))}
+        </div>
+      </SummarySection>
 
       {/* Section 1 — Recommended Starting Point */}
       <SummarySection label="Recommended Starting Point">
@@ -1220,33 +1246,13 @@ function FitSummaryCard({
             <ChevronRight size={15} />
           </button>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-1.5"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            <ChevronLeft size={12} />
-            Edit Answers
-          </button>
-          <a
-            href="tel:18005551234"
-            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            Call Directly
-          </a>
-        </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
+        <a
+          href="tel:18005551234"
+          className="w-full py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          <RotateCcw size={10} />
-          Start Over
-        </button>
+          Call Directly
+        </a>
       </div>
     </div>
   )
@@ -1348,12 +1354,12 @@ function StudentConfirmation({
           aria-expanded={profileOpen}
         >
           <div className="flex items-center gap-2">
-            <Clipboard size={11} className="text-[#B0B0B0] shrink-0" />
+            <User size={11} className="text-[#B0B0B0] shrink-0" />
             <span
               className="text-[10px] font-black tracking-widest uppercase text-white"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
-              What the Advisor Will See
+              View Enrollment Profile
             </span>
           </div>
           {profileOpen ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
@@ -1518,7 +1524,7 @@ function EnrollmentView({
   return (
     <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
 
-      {/* ── Header ─────────────────────────────────────────────────── */}
+      {/* ── Header ───���─────────────────────────────────────────────── */}
       <div className="flex items-start justify-between pb-3 border-b border-[#2E2E2E] gap-3">
         <div>
           <p
@@ -1532,12 +1538,14 @@ function EnrollmentView({
             {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
         </div>
-        <span
-          className={`shrink-0 text-[10px] font-black tracking-widest uppercase px-2.5 py-1 border ${intentBg} ${intentColor}`}
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          {intentLabel} Intent
-        </span>
+        {!embedded && (
+          <span
+            className={`shrink-0 text-[10px] font-black tracking-widest uppercase px-2.5 py-1 border ${intentBg} ${intentColor}`}
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            {intentLabel} Intent
+          </span>
+        )}
       </div>
 
       {/* ── 1. Student Snapshot ────────────────────────────────────── */}
@@ -1572,7 +1580,7 @@ function EnrollmentView({
         ))}
       </InfoSection>
 
-      {/* ── 3. Main Concern ───────────────────────────────────────── */}
+      {/* ── 3. Main Concern ─────────────────────��─────────────────── */}
       <InfoSection title="Main Concern">
         <p className="text-xs font-semibold text-white mb-2">{concernLabel}</p>
         <p
@@ -1812,7 +1820,7 @@ function MiaBubble({ text }: { text: string }) {
       </div>
       <div
         className="px-3.5 py-2.5 text-sm text-white leading-relaxed whitespace-pre-wrap max-w-[88%] rounded-md rounded-tl-none"
-        style={{ backgroundColor: "#1A1A1A" }}
+        style={{ backgroundColor: "#1C1C1C" }}
       >
         {text}
       </div>
@@ -1824,8 +1832,8 @@ function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
       <div
-        className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] text-white rounded-md rounded-tr-none"
-        style={{ backgroundColor: "#262626" }}
+        className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] text-white rounded-md rounded-tr-none border-l-2 border-[#2563EB]"
+        style={{ backgroundColor: "#2A2A2A" }}
       >
         {text}
       </div>
