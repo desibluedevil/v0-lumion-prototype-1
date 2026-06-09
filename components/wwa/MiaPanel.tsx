@@ -12,6 +12,9 @@ import {
   Clipboard,
   AlertCircle,
   RotateCcw,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -176,7 +179,7 @@ export function focusMia(programName?: string) {
   focusMiaListeners.forEach((fn) => fn(programName))
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ─────────────���──────────────────────────────────────────────────────
 
 type Message = { role: "mia" | "user"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
@@ -193,7 +196,7 @@ interface LeadData {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function MiaPanel({ compact = false }: { compact?: boolean }) {
+export default function MiaPanel({ compact = false, onClose }: { compact?: boolean; onClose?: () => void }) {
   const [stepIndex, setStepIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -206,7 +209,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     contact: "Text",
     time: "Morning",
   })
-  const [activeTab, setActiveTab] = useState<"student" | "enrollment">("student")
   const [optionsVisible, setOptionsVisible] = useState(false)
   const [groundedReady, setGroundedReady] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -376,7 +378,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     if (!canSubmit) return
     setSubmitted(true)
     setPhase("handoff")
-    setActiveTab("student")
   }
 
   function resetFlow() {
@@ -389,7 +390,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setSubmitted(false)
     setProgramContext(null)
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
-    setActiveTab("student")
   }
 
   // ── Handoff screen ────────────────────────────────────────────────────────
@@ -399,45 +399,18 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     const conversationSummary = buildConversationSummary(answers, program)
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} />
-        <div className="flex border-b border-border shrink-0">
-          {(["student", "enrollment"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 text-[10px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 transition-colors ${
-                activeTab === tab
-                  ? "border-b-2 border-primary text-foreground bg-secondary/30"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              {tab === "student" ? <User size={11} /> : <Clipboard size={11} />}
-              {tab === "student" ? "Confirmation" : "Enrollment Profile"}
-            </button>
-          ))}
-        </div>
+        <PanelHeader onReset={resetFlow} onClose={onClose} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
-          {activeTab === "student" ? (
-            <StudentConfirmation
-              lead={lead}
-              answers={answers}
-              program={program}
-              intent={intent}
-              advisorScript={advisorScript}
-              onReset={resetFlow}
-              onViewEnrollment={() => setActiveTab("enrollment")}
-            />
-          ) : (
-            <EnrollmentView
-              lead={lead}
-              answers={answers}
-              program={program}
-              intent={intent}
-              advisorScript={advisorScript}
-              conversationSummary={conversationSummary}
-            />
-          )}
+          <StudentConfirmation
+            lead={lead}
+            answers={answers}
+            program={program}
+            intent={intent}
+            advisorScript={advisorScript}
+            conversationSummary={conversationSummary}
+            onReset={resetFlow}
+            onClose={onClose}
+          />
         </div>
       </PanelShell>
     )
@@ -562,7 +535,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     )
   }
 
-  // ── Main flow / idle ──────────────────────────────────────────────────────
+  // ── Main flow / idle ───────────────��──────────────────────────────────────
 
   return (
     <PanelShell compact={compact}>
@@ -810,7 +783,7 @@ function FitSummaryCard({
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────��─────���───���─
+// ─── Student Confirmation ─────────────────────────────────────────────────────
 
 function StudentConfirmation({
   lead,
@@ -818,103 +791,129 @@ function StudentConfirmation({
   program,
   intent,
   advisorScript,
+  conversationSummary,
   onReset,
-  onViewEnrollment,
+  onClose,
 }: {
   lead: LeadData
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   advisorScript: string
+  conversationSummary: string
   onReset: () => void
-  onViewEnrollment: () => void
+  onClose?: () => void
 }) {
-  const [, experience, timeline, concern] = answers
-  const intentColor =
-    intent === "High"
-      ? "text-green-400"
-      : intent === "Medium"
-      ? "text-yellow-400"
-      : "text-muted-foreground"
+  const [profileOpen, setProfileOpen] = useState(false)
 
   return (
-    <div className="space-y-4 pb-2">
-      {/* Confirmation header */}
-      <div className="flex items-center gap-3 py-3 border-b border-border">
-        <div className="w-8 h-8 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0">
-          <Check size={15} className="text-green-400" />
+    <div className="space-y-5 pb-4">
+
+      {/* ── Success header ─────────────────────────────────────────── */}
+      <div className="flex items-start gap-3 pt-1">
+        <div className="w-9 h-9 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0 mt-0.5">
+          <Check size={16} className="text-green-400" />
         </div>
         <div>
           <p
-            className="text-sm font-black tracking-widest uppercase text-foreground"
+            className="text-base font-black tracking-widest uppercase text-foreground leading-tight"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            {"You're all set."}
+            {"You're all set!"}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            An enrollment advisor will reach out with your fit summary. They can confirm details, answer questions, and help you decide on the right next step.
+          <p
+            className="text-xs text-muted-foreground mt-1.5 leading-relaxed"
+          >
+            {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
           </p>
         </div>
       </div>
 
-      {/* What Mia sent */}
-      <div>
+      {/* ── What was sent summary ──────────────────────────────────── */}
+      <div className="border border-border bg-secondary/50 px-4 py-3 space-y-2.5">
         <p
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2"
+          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          What Mia sent to enrollment
+          Sent to enrollment
         </p>
-        <div className="border border-border bg-secondary p-3 space-y-2">
-          {[
-            ["Name", lead.name || "—"],
-            ["Phone", lead.phone || "—"],
-            ["Preferred contact", lead.contact],
-            ["Best time to reach", lead.time],
-            ["Recommended program", program.name],
-            ["Experience level", experience ?? "—"],
-            ["Timeline", timeline ?? "—"],
-            ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
-            ["Intent level", { value: intent, className: intentColor }],
-            ["Suggested advisor opener", { value: advisorScript, italic: true }],
-          ].map(([label, value]) => (
-            <div key={label as string} className="flex justify-between items-start gap-4 text-xs">
-              <span className="text-muted-foreground shrink-0 min-w-[90px]">{label as string}</span>
-              {typeof value === "string" ? (
-                <span className="font-semibold text-foreground text-right">{value}</span>
-              ) : (value as { italic?: boolean }).italic ? (
-                <span className="text-muted-foreground italic text-right leading-relaxed">
-                  {(value as { value: string }).value}
-                </span>
-              ) : (
-                <span className={`font-semibold text-right ${(value as { className: string }).className}`}>
-                  {(value as { value: string }).value}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+        {[
+          ["Recommended program", program.name],
+          ["Contact", `${lead.name} · ${lead.phone}`],
+          ["Preferred reach", `${lead.contact} · ${lead.time}`],
+        ].map(([label, value]) => (
+          <div key={label} className="flex justify-between items-start gap-4 text-xs">
+            <span className="text-muted-foreground shrink-0">{label}</span>
+            <span className="font-semibold text-foreground text-right">{value}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Actions */}
-      <div className="space-y-2 pt-1">
+      {/* ── Primary actions ────────────────────────────────────────── */}
+      <div className="space-y-2">
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-2.5 bg-primary text-primary-foreground text-xs font-bold tracking-widest uppercase hover:bg-primary/90 transition-colors"
+          className="w-full py-3 bg-primary text-primary-foreground text-xs font-black tracking-widest uppercase hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
+          <RotateCcw size={12} />
           Start Over
         </button>
+
+        {/* Collapsible enrollment profile disclosure */}
         <button
           type="button"
-          onClick={onViewEnrollment}
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+          onClick={() => setProfileOpen((v) => !v)}
+          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          aria-expanded={profileOpen}
         >
+          <Clipboard size={12} />
           View Enrollment Profile
+          {profileOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </button>
+
+        {/* Close panel */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/60 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            <X size={11} />
+            Close
+          </button>
+        )}
       </div>
+
+      {/* ── Enrollment Profile (hidden by default) ─────────────────── */}
+      {profileOpen && (
+        <div className="border border-border">
+          {/* Label strip */}
+          <div className="px-4 py-2.5 border-b border-border bg-secondary/60 flex items-center gap-2">
+            <Clipboard size={11} className="text-muted-foreground shrink-0" />
+            <p
+              className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              Details the advisor receives
+            </p>
+          </div>
+          <div className="px-1 py-1">
+            <EnrollmentView
+              lead={lead}
+              answers={answers}
+              program={program}
+              intent={intent}
+              advisorScript={advisorScript}
+              conversationSummary={conversationSummary}
+              embedded
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -928,6 +927,7 @@ function EnrollmentView({
   intent,
   advisorScript,
   conversationSummary,
+  embedded = false,
 }: {
   lead: LeadData
   answers: string[]
@@ -935,6 +935,7 @@ function EnrollmentView({
   intent: "High" | "Medium" | "Researching"
   advisorScript: string
   conversationSummary: string
+  embedded?: boolean
 }) {
   const [goal, experience, timeline, concern] = answers
   const intentColor =
@@ -958,7 +959,7 @@ function EnrollmentView({
       : `Add to nurture sequence. Send program overview email. Check back in 2–3 weeks.`
 
   return (
-    <div className="space-y-4 pb-2">
+    <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
       {/* Lead header */}
       <div className="flex items-center justify-between pb-3 border-b border-border">
         <div>
@@ -1093,7 +1094,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
   )
 }
 
-function PanelHeader({ onReset }: { onReset?: () => void }) {
+function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
   return (
     <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
@@ -1115,7 +1116,7 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
           <div className="text-muted-foreground text-[10px]">Western Welding Academy</div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           <span className="text-[10px] text-muted-foreground">Online</span>
@@ -1124,11 +1125,22 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
             title="Start over"
             aria-label="Start over"
           >
             <RotateCcw size={11} />
+          </button>
+        )}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            title="Close panel"
+            aria-label="Close Mia panel"
+          >
+            <X size={14} />
           </button>
         )}
       </div>

@@ -21,6 +21,7 @@ import { MessageSquare, X } from "lucide-react"
 
 function FloatingMia() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [desktopVisible, setDesktopVisible] = useState(true)
   const [mounted, setMounted] = useState(false)
 
   // Avoid SSR mismatch — only render the fixed overlay after mount
@@ -29,19 +30,34 @@ function FloatingMia() {
 
   return (
     <>
-      {/* ── Desktop: always visible fixed panel ─────────────────────── */}
-      <div
-        className="hidden lg:flex flex-col fixed z-40"
-        style={{
-          top: "calc(1.75rem + 4rem + 8px)", // tagline + header + gap
-          right: "1.5rem",
-          width: "clamp(340px, 26vw, 420px)",
-          // Panel height fills from below header to 24px above viewport bottom
-          height: "calc(100vh - 1.75rem - 4rem - 8px - 24px)",
-        }}
-      >
-        <MiaPanel />
-      </div>
+      {/* ── Desktop: fixed panel, dismissible ───────────────────────── */}
+      {desktopVisible && (
+        <div
+          className="hidden lg:flex flex-col fixed z-40"
+          style={{
+            top: "calc(1.75rem + 4rem + 8px)", // tagline + header + gap
+            right: "1.5rem",
+            width: "clamp(340px, 26vw, 420px)",
+            height: "calc(100vh - 1.75rem - 4rem - 8px - 24px)",
+          }}
+        >
+          <MiaPanel onClose={() => setDesktopVisible(false)} />
+        </div>
+      )}
+
+      {/* Desktop re-open FAB — shown only after panel is closed */}
+      {!desktopVisible && (
+        <button
+          type="button"
+          onClick={() => setDesktopVisible(true)}
+          className="hidden lg:flex fixed bottom-5 right-5 z-50 items-center gap-2 px-4 py-3 bg-primary text-primary-foreground text-xs font-black tracking-widest uppercase hover:bg-primary/90 transition-colors shadow-lg"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          aria-label="Reopen Mia fit check"
+        >
+          <MessageSquare size={14} />
+          Talk to Mia
+        </button>
+      )}
 
       {/* ── Mobile: FAB toggle ───────────────────────────────────────── */}
       <button
@@ -59,7 +75,7 @@ function FloatingMia() {
           className="lg:hidden fixed inset-x-0 bottom-0 z-40 flex flex-col"
           style={{ top: "calc(1.75rem + 4rem)" }}
         >
-          <MiaPanel />
+          <MiaPanel onClose={() => setMobileOpen(false)} />
         </div>
       )}
     </>
