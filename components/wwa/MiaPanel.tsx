@@ -240,6 +240,9 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const [freeAnswering, setFreeAnswering] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Anchor placed immediately before the "Yes — show me the summary" bubble.
+  // scrollToSummaryAnchor() uses this to jump to exactly that spot.
+  const summaryAnchorRef = useRef<HTMLDivElement>(null)
   // Track whether the user has scrolled up manually so we don't hijack their position.
   // Reset to false whenever a phase change happens (new screen = resume auto-scroll).
   const userScrolledUp = useRef(false)
@@ -371,7 +374,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const el = scrollRef.current
     if (!el) return
 
-    function scrollToBottom(smooth: boolean) {
+    function scrollDown(smooth: boolean) {
       if (!el) return
       el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "instant" })
     }
@@ -380,15 +383,18 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     userScrolledUp.current = false
     if (phase === "capture" || phase === "handoff") {
       el.scrollTo({ top: 0, behavior: "smooth" })
+    } else if (phase === "summary") {
+      // Anchor scroll handled by showFitSummary() via rAF — don't fight it here
     } else {
-      scrollToBottom(false)
+      scrollDown(false)
     }
 
     // Watch for DOM mutations (new children added = new messages / chips)
     const observer = new MutationObserver(() => {
-      if (phase === "capture" || phase === "handoff") return
+      // capture / handoff scroll to top; summary uses anchor scroll — skip both
+      if (phase === "capture" || phase === "handoff" || phase === "summary") return
       if (!userScrolledUp.current) {
-        scrollToBottom(true)
+        scrollDown(true)
       }
     })
     observer.observe(el, { childList: true, subtree: true })
@@ -489,10 +495,30 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     }
   }
 
+  function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behavior: ScrollBehavior = "smooth") {
+    const container = scrollRef.current
+    const anchor = anchorRef.current
+    if (!container || !anchor) return
+    const anchorTop = anchor.offsetTop
+    container.scrollTo({ top: anchorTop, behavior })
+  }
+
+  function scrollToBottom(behavior: ScrollBehavior = "smooth") {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }
+
   function showFitSummary() {
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
+    // Scroll to the anchor after the DOM has painted the new bubble
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToAnchor(summaryAnchorRef)
+      })
+    })
   }
 
   function goBackToGrounded() {
@@ -500,6 +526,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => prev.filter((m) => m.text !== "Yes — show me the summary"))
     setPhase("grounded")
     setGroundedReady(true)
+    // Scroll back to the bottom so the user sees the bridge message + See Fit Summary CTA
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToBottom("smooth")
+      })
+    })
   }
 
   function handleSubmit() {
@@ -791,7 +823,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               ) : msg.role === "status" ? (
                 <StatusPill key={i} text={msg.text} />
               ) : (
-                <UserBubble key={i} text={msg.text} />
+                <div key={i}>
+                  {/* Invisible anchor — scroll target for "See My Fit Summary" */}
+                  {msg.text === "Yes — show me the summary" && (
+                    <div ref={summaryAnchorRef} aria-hidden="true" className="h-0" />
+                  )}
+                  <UserBubble text={msg.text} />
+                </div>
               )
             )}
 
