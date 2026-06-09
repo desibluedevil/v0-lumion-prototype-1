@@ -21,19 +21,19 @@ const COLUMNS = [
   {
     title: "Admissions",
     links: [
-      { label: "Apply Now",      action: openApplyModal,              active: true },
-      { label: "Is WWA a Fit?",  action: () => focusMia(),            active: true },
-      { label: "Financial Aid",  action: () => scrollTo("financial-aid"), active: true },
-      { label: "Housing Info",   action: () => scrollTo("mia-section"),   active: true },
+      { label: "Apply Now",      action: openApplyModal,                   active: true },
+      { label: "Is WWA a Fit?",  action: () => focusMia(),                 active: true },
+      { label: "Financial Aid",  action: () => scrollTo("financial-aid"),  active: true },
+      { label: "Housing Info",   action: () => scrollTo("mia-section"),    active: true },
     ],
   },
   {
     title: "Academy",
     links: [
-      { label: "About WWA",       action: () => scrollTo("mission"),     active: true },
-      { label: "Faculty & Staff", action: () => scrollTo("mission"),     active: true },
-      { label: "Campus Tour",     action: () => scrollTo("mia-section"), active: true },
-      { label: "Alumni",          action: () => scrollTo("proof"),       active: true },
+      { label: "About WWA",       action: () => scrollTo("mission"),      active: true },
+      { label: "Faculty & Staff", action: () => scrollTo("mission"),      active: true },
+      { label: "Campus Tour",     action: () => scrollTo("mia-section"),  active: true },
+      { label: "Alumni",          action: () => scrollTo("proof"),        active: true },
     ],
   },
   {
@@ -68,7 +68,7 @@ export default function Footer() {
             >
               <div className="w-12 h-12 bg-primary flex items-center justify-center shrink-0">
                 <span
-                  className="text-white text-sm font-black tracking-widest"
+                  className="text-primary-foreground text-sm font-black tracking-widest"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   WWA
@@ -76,13 +76,13 @@ export default function Footer() {
               </div>
               <div className="leading-snug">
                 <div
-                  className="text-white font-black text-sm tracking-[0.15em] uppercase group-hover:text-primary transition-colors"
+                  className="text-foreground font-black text-sm tracking-[0.15em] uppercase group-hover:text-primary transition-colors"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   Western
                 </div>
                 <div
-                  className="text-white font-black text-sm tracking-[0.15em] uppercase group-hover:text-primary transition-colors"
+                  className="text-foreground font-black text-sm tracking-[0.15em] uppercase group-hover:text-primary transition-colors"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   Welding Academy
@@ -90,7 +90,7 @@ export default function Footer() {
               </div>
             </button>
 
-            <p className="text-white/50 text-xs leading-relaxed">
+            <p className="text-muted-foreground text-xs leading-relaxed">
               Wyoming&apos;s premier pipeline welding school. Hands-on training, career placement, and all-inclusive housing.
             </p>
 
@@ -98,7 +98,7 @@ export default function Footer() {
               <div className="flex items-center gap-2">
                 <MapPin size={12} className="text-primary shrink-0" />
                 <span
-                  className="text-white/70 text-xs tracking-widest uppercase"
+                  className="text-muted-foreground text-xs tracking-widest uppercase"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   Gillette, WY
@@ -106,7 +106,7 @@ export default function Footer() {
               </div>
               <a
                 href="tel:18005551234"
-                className="flex items-center gap-2 text-white/70 text-xs hover:text-primary transition-colors"
+                className="flex items-center gap-2 text-muted-foreground text-xs hover:text-primary transition-colors"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
                 <Phone size={12} className="shrink-0" />
@@ -117,7 +117,7 @@ export default function Footer() {
             {/* Apply CTA */}
             <button
               onClick={openApplyModal}
-              className="mt-2 w-full py-2.5 bg-primary text-white text-xs font-black tracking-[0.18em] uppercase hover:bg-primary/90 transition-colors"
+              className="mt-2 w-full py-2.5 bg-primary text-primary-foreground text-xs font-black tracking-[0.18em] uppercase hover:bg-primary/90 transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               Apply Now
@@ -131,7 +131,7 @@ export default function Footer() {
               <div className="space-y-2">
                 <div className="w-6 h-0.5 bg-primary" />
                 <h4
-                  className="text-white font-black text-xs tracking-[0.22em] uppercase"
+                  className="text-foreground font-black text-xs tracking-[0.22em] uppercase"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   {col.title}
@@ -143,14 +143,14 @@ export default function Footer() {
                     {link.active ? (
                       <button
                         onClick={link.action!}
-                        className="text-white/50 text-xs hover:text-primary transition-colors text-left leading-relaxed"
+                        className="text-muted-foreground text-xs hover:text-primary transition-colors text-left leading-relaxed"
                         style={{ fontFamily: "var(--font-barlow-condensed)" }}
                       >
                         {link.label}
                       </button>
                     ) : (
                       <span
-                        className="text-white/20 text-xs cursor-default text-left leading-relaxed select-none"
+                        className="text-muted-foreground/40 text-xs cursor-default text-left leading-relaxed select-none"
                         style={{ fontFamily: "var(--font-barlow-condensed)" }}
                         title="Coming soon"
                       >
@@ -165,15 +165,15 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-white/30 text-xs" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-muted-foreground/60 text-xs" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
             © 2026 Western Welding Academy. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             {["Privacy Policy", "Terms of Use", "Accreditation"].map((item) => (
               <button
                 key={item}
-                className="text-white/30 text-xs hover:text-white/60 transition-colors"
+                className="text-muted-foreground/60 text-xs hover:text-foreground transition-colors"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
                 {item}

@@ -107,7 +107,7 @@ export default function Programs() {
             >
               {/* Tag ribbon */}
               <div
-                className="bg-primary text-white text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 text-center"
+                className="bg-primary text-primary-foreground text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 text-center"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
                 {prog.tag}
@@ -188,14 +188,14 @@ export default function Programs() {
                 <div className="space-y-2 mt-auto">
                   <button
                     onClick={openApplyModal}
-                    className="w-full py-3.5 bg-primary text-white font-black tracking-[0.18em] uppercase text-sm hover:bg-primary/90 transition-colors"
+                    className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-[0.18em] uppercase text-sm hover:bg-primary/90 transition-colors"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
                     Apply Now
                   </button>
                   <button
                     onClick={() => focusMia(prog.name)}
-                    className="w-full py-3 border-2 border-black text-black text-xs font-black tracking-[0.18em] uppercase hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 border-2 border-black text-black text-xs font-black tracking-[0.18em] uppercase hover:bg-black hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
                     <span aria-hidden="true" className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black">M</span>
