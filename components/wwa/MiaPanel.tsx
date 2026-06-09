@@ -204,7 +204,7 @@ export function focusMia(intent: FocusMiaIntent = {}) {
 
 // ─── Types ─�����───────────���──────────────────────────────────────────────────────
 
-type Message = { role: "mia" | "user"; text: string }
+type Message = { role: "mia" | "user" | "status"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
 type ContactPref = "Text" | "Call" | "Email"
 type BestTime = "Morning" | "Afternoon" | "Evening"
@@ -428,6 +428,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setOptionsVisible(true)
   }
 
+  // Status lines shown between user answer and next Mia question / grounded response
+  const STEP_STATUS: Record<number, string> = {
+    0: "Got it. I'll use that to check which program path makes the most sense.",
+    1: "Checking beginner vs. advanced program fit…",
+    2: "Looking at how soon enrollment should follow up…",
+    3: "Checking WWA facts for this answer…",
+  }
+
   function handleOption(option: string) {
     const myGen = ++gen.current
     const newAnswers = [...answers, option]
@@ -435,7 +443,11 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
     setAnswers(newAnswers)
     setOptionsVisible(false)
-    setMessages((prev) => [...prev, { role: "user", text: option }])
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", text: option },
+      { role: "status", text: STEP_STATUS[stepIndex] ?? "" },
+    ])
 
     if (newStep < STEPS.length) {
       setTimeout(() => {
@@ -443,7 +455,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         setStepIndex(newStep)
         setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStep].question }])
         setOptionsVisible(true)
-      }, 350)
+      }, 700)
     } else {
       // All 4 answers in — show grounded concern response then bridge
       const resp = CONCERN_RESPONSES[option]
@@ -464,7 +476,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           pushMia(bridgeText)
           setGroundedReady(true)
         }, 900)
-      }, 350)
+      }, 700)
     }
   }
 
@@ -705,6 +717,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             {messages.map((msg, i) =>
               msg.role === "mia" ? (
                 <MiaBubble key={i} text={msg.text} />
+              ) : msg.role === "status" ? (
+                <StatusPill key={i} text={msg.text} />
               ) : (
                 <UserBubble key={i} text={msg.text} />
               )
@@ -1362,6 +1376,21 @@ function StepProgress({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function StatusPill({ text }: { text: string }) {
+  if (!text) return null
+  return (
+    <div className="flex items-center gap-2 ml-9 py-1">
+      <span className="w-1 h-1 rounded-full bg-primary shrink-0 animate-pulse" />
+      <span
+        className="text-[11px] text-primary/80 italic leading-snug"
+        style={{ fontFamily: "var(--font-sans)" }}
+      >
+        {text}
+      </span>
     </div>
   )
 }
