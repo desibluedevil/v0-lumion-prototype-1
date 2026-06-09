@@ -238,8 +238,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const [submitted, setSubmitted] = useState(false)
   const [freeInput, setFreeInput] = useState("")
   const [freeAnswering, setFreeAnswering] = useState(false)
+  // Tracks the option the user just tapped so we can flash a blue highlight before transitioning
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  // Controls the success toast shown for ~2s before the handoff screen appears
+  const [showToast, setShowToast] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Ref attached to the first option button so we can focus it when options appear
+  const firstOptionRef = useRef<HTMLButtonElement>(null)
   // Anchor placed immediately before the "Yes — show me the summary" bubble.
   // scrollToSummaryAnchor() uses this to jump to exactly that spot.
   const summaryAnchorRef = useRef<HTMLDivElement>(null)
@@ -351,6 +357,15 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const phonePartial = lead.phone.trim().length > 0 && !phoneComplete
   const canSubmit = lead.name.trim().length > 0 && phoneComplete && !submitted
 
+  // ── Keyboard focus management — move focus to first option after it appears ──
+  useEffect(() => {
+    if (optionsVisible && firstOptionRef.current) {
+      // Small delay lets the DOM paint before we steal focus
+      const t = setTimeout(() => firstOptionRef.current?.focus(), 80)
+      return () => clearTimeout(t)
+    }
+  }, [optionsVisible, stepIndex])
+
   // ── User-scroll detection ──────────────────────────────────────────────────
   // When the user scrolls up more than 40px from the bottom we stop auto-scrolling.
   // When they reach the bottom again we re-enable it.
@@ -456,6 +471,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const newAnswers = [...answers, option]
     const newStep = stepIndex + 1
 
+    // Flash the selected chip blue for 300ms so the user sees confirmation
+    setSelectedOption(option)
+    setTimeout(() => setSelectedOption(null), 300)
+
     setAnswers(newAnswers)
     setOptionsVisible(false)
     setMessages((prev) => [
@@ -537,7 +556,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   function handleSubmit() {
     if (!canSubmit) return
     setSubmitted(true)
-    setPhase("handoff")
+    setShowToast(true)
+    // Show green success toast for 1800ms, then transition to handoff screen
+    setTimeout(() => {
+      setShowToast(false)
+      setPhase("handoff")
+    }, 1800)
   }
 
   // ── Freeform "Ask Mia" ─────────────────────────────────────────────────────
@@ -611,6 +635,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} />
+        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           <StudentConfirmation
             lead={lead}
@@ -798,6 +823,9 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             Start Over
           </button>
         </div>
+
+        {/* Success toast — slides in from the top when form is submitted */}
+        <SuccessToast visible={showToast} />
       </PanelShell>
     )
   }
@@ -807,10 +835,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   return (
     <PanelShell compact={compact}>
       <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
-
-      {phase !== "idle" && (
-        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
-      )}
+      <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {phase === "idle" ? (
@@ -836,17 +861,25 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             {/* Step option chips */}
             {phase === "flow" && optionsVisible && stepIndex < STEPS.length && (
               <div className="ml-9 space-y-1.5 pt-1">
-                {STEPS[stepIndex].options.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => handleOption(opt)}
-                    className="w-full text-left px-4 py-2.5 border border-[#2E2E2E] text-sm text-[#B0B0B0] hover:border-primary hover:text-white transition-colors"
-                    style={{ backgroundColor: "#161616" }}
-                  >
-                    {opt}
-                  </button>
-                ))}
+                {STEPS[stepIndex].options.map((opt, idx) => {
+                  const isSelected = selectedOption === opt
+                  return (
+                    <button
+                      key={opt}
+                      ref={idx === 0 ? firstOptionRef : undefined}
+                      type="button"
+                      onClick={() => handleOption(opt)}
+                      className="w-full text-left px-4 py-2.5 border text-sm transition-all duration-300 focus-visible:outline-none focus-visible:border-primary focus-visible:text-white"
+                      style={{
+                        backgroundColor: isSelected ? "#2563EB" : "#161616",
+                        borderColor: isSelected ? "#2563EB" : "#2E2E2E",
+                        color: isSelected ? "#FFFFFF" : "#B0B0B0",
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  )
+                })}
               </div>
             )}
 
@@ -1614,7 +1647,7 @@ function EnrollmentView({
 function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
   return (
     <div
-      className={`flex flex-col overflow-hidden border border-[#2E2E2E] ${
+      className={`relative flex flex-col overflow-hidden border border-[#2E2E2E] ${
         compact ? "h-[560px]" : "h-full"
       }`}
       style={{ backgroundColor: "#0F0F0F" }}
@@ -1690,13 +1723,15 @@ function StepProgress({
   answersCount: number
 }) {
   const summaryActive = phase === "summary" || phase === "capture"
-  const flowDone = phase === "grounded" || summaryActive
+  const handoffActive = phase === "handoff"
+  const flowDone = phase === "grounded" || summaryActive || handoffActive
+  const isIdle = phase === "idle"
   return (
     <div className="px-4 py-2 border-b border-[#2E2E2E] shrink-0 flex items-center gap-1.5">
       {PROGRESS_STEPS.map((label, i) => {
         const isSummaryStep = i === PROGRESS_STEPS.length - 1
-        const isDone = isSummaryStep ? false : flowDone || i < answersCount
-        const isActive = isSummaryStep ? summaryActive : !flowDone && i === stepIndex
+        const isDone = isIdle ? false : isSummaryStep ? handoffActive : flowDone || i < answersCount
+        const isActive = isIdle ? false : isSummaryStep ? summaryActive || handoffActive : !flowDone && i === stepIndex
         return (
           <div key={label} className="flex items-center gap-1.5 flex-1 min-w-0">
             <div className="w-full flex flex-col gap-0.5">
@@ -1717,6 +1752,34 @@ function StepProgress({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Success Toast ────────────────────────────────────────────────────────────
+
+function SuccessToast({ visible }: { visible: boolean }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="absolute top-0 inset-x-0 z-50 flex items-center justify-center gap-2.5 px-4 py-3 border-b border-green-700/40 transition-all duration-300"
+      style={{
+        backgroundColor: "#0a2318",
+        transform: visible ? "translateY(0)" : "translateY(-100%)",
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? "auto" : "none",
+      }}
+    >
+      <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center shrink-0">
+        <Check size={11} className="text-green-400" />
+      </div>
+      <span
+        className="text-xs font-bold tracking-widest uppercase text-green-400"
+        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+      >
+        Submitted — connecting you with an advisor
+      </span>
     </div>
   )
 }
