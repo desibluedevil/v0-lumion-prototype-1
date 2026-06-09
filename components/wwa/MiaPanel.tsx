@@ -532,13 +532,11 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
-    // First rAF: scroll to the "Yes" bubble anchor so the user sees the transition.
-    // Second rAF (after layout): scroll to bottom so the whole summary card is in view.
+    // Scroll to the "Yes — show me the summary" anchor so "Your Answers" renders
+    // at the top of the visible area. User can scroll down to see the full card.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scrollToAnchor(summaryAnchorRef)
-        // Give the summary card a frame to paint, then scroll to bottom
-        setTimeout(() => scrollToBottom("smooth"), 120)
       })
     })
   }
@@ -878,7 +876,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                       className="w-full text-left px-4 py-2.5 border text-sm transition-all duration-300 focus-visible:outline-none focus-visible:border-primary focus-visible:text-white"
                       style={{
                         backgroundColor: isSelected ? "#2563EB" : "#161616",
-                        borderColor: isSelected ? "#2563EB" : "#2E2E2E",
+                        borderColor: isSelected ? "#2563EB" : "#3A3A3A",
                         color: isSelected ? "#FFFFFF" : "#B0B0B0",
                       }}
                     >
@@ -923,16 +921,16 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
       </div>
 
       {/* Back / Start Over nav bar — sticky at the bottom of the guided flow */}
-      {(phase === "flow" || phase === "grounded") && (
+      {(phase === "flow" || phase === "grounded" || phase === "summary") && (
         <div
           className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
           style={{ backgroundColor: "#0F0F0F" }}
         >
           {/* Back — rounded outline button, white border + text */}
-          {phase === "flow" && stepIndex > 0 ? (
+          {(phase === "flow" && stepIndex > 0) || phase === "summary" ? (
             <button
               type="button"
-              onClick={goBackOneStep}
+              onClick={phase === "summary" ? goBackToGrounded : goBackOneStep}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
@@ -1248,33 +1246,13 @@ function FitSummaryCard({
             <ChevronRight size={15} />
           </button>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-1.5"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            <ChevronLeft size={12} />
-            Edit Answers
-          </button>
-          <a
-            href="tel:18005551234"
-            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            Call Directly
-          </a>
-        </div>
-        <button
-          type="button"
-          onClick={onReset}
-          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
+        <a
+          href="tel:18005551234"
+          className="w-full py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          <RotateCcw size={10} />
-          Start Over
-        </button>
+          Call Directly
+        </a>
       </div>
     </div>
   )
