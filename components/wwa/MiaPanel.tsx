@@ -11,6 +11,7 @@ import {
   User,
   Clipboard,
   RotateCcw,
+  Send,
   X,
   ChevronDown,
   ChevronUp,
@@ -235,6 +236,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const [optionsVisible, setOptionsVisible] = useState(false)
   const [groundedReady, setGroundedReady] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [freeInput, setFreeInput] = useState("")
+  const [freeAnswering, setFreeAnswering] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   // Track whether the user has scrolled up manually so we don't hijack their position.
@@ -497,6 +500,56 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     if (!canSubmit) return
     setSubmitted(true)
     setPhase("handoff")
+  }
+
+  // ── Freeform "Ask Mia" ─────────────────────────────────────────────────────
+
+  function matchFreeInput(q: string): string {
+    const t = q.toLowerCase()
+    if (/cost|tuition|financ|price|pay|afford|money/.test(t))
+      return "Programs range from $17,050 to $35,800. Housing, tools, and materials are included. Financing may be available for qualified applicants. An advisor can walk you through options."
+    if (/hous|wyom|gillett|moving?|relocat|where|locat/.test(t))
+      return "WWA is in Gillette, Wyoming. Housing is included, which helps students relocate for training."
+    if (/no experience|beginner|never|never welded|zero|start|new to/.test(t))
+      return "You do not need prior welding experience for the beginner path. Foundational Pipe Welder starts from zero."
+    if (/job|hire|hired|salary|wage|earn|placement|career/.test(t))
+      return "WWA reports a 94% hire rate. Salary ranges vary by employer, location, experience, and role."
+    if (/program|fit|which|right for|suit|match|pick/.test(t))
+      return "I can check that. I'll look at your goal, experience, timeline, and biggest concern, then suggest a starting point."
+    return "That's a good question. An enrollment advisor can give you a direct answer based on your situation."
+  }
+
+  function handleFreeInput() {
+    const q = freeInput.trim()
+    if (!q || freeAnswering) return
+    const myGen = gen.current // don't bump — we're not resetting the guided flow
+
+    setFreeInput("")
+    setFreeAnswering(true)
+    setOptionsVisible(false)
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", text: q },
+      { role: "status", text: "Checking WWA facts for this question…" },
+    ])
+
+    setTimeout(() => {
+      if (gen.current !== myGen) return
+      const answer = matchFreeInput(q)
+      setMessages((prev) => [
+        ...prev,
+        { role: "mia", text: answer },
+        { role: "status", text: "Returning to your fit check…" },
+      ])
+      setTimeout(() => {
+        if (gen.current !== myGen) return
+        setFreeAnswering(false)
+        // Only re-show options if still in the guided flow phase (not grounded/summary)
+        if (phase === "flow" && stepIndex < STEPS.length) {
+          setOptionsVisible(true)
+        }
+      }, 500)
+    }, 650)
   }
 
   function resetFlow() {
@@ -791,6 +844,33 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           </>
         )}
       </div>
+
+      {/* Freeform "Ask Mia" input — shown during flow and grounded phases only */}
+      {(phase === "flow" || phase === "grounded") && (
+        <div className="px-5 pb-4 pt-2 border-t border-border/60 bg-background/95">
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleFreeInput() }}
+            className="flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={freeInput}
+              onChange={(e) => setFreeInput(e.target.value)}
+              placeholder="Ask Mia about cost, housing, experience, jobs, or programs…"
+              disabled={freeAnswering}
+              className="flex-1 min-w-0 bg-secondary border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!freeInput.trim() || freeAnswering}
+              aria-label="Send question to Mia"
+              className="shrink-0 w-8 h-8 flex items-center justify-center border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Send size={13} />
+            </button>
+          </form>
+        </div>
+      )}
     </PanelShell>
   )
 }
