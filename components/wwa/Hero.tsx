@@ -85,7 +85,7 @@ export default function Hero() {
           <div className="pt-1 flex items-center gap-3">
             <div className="h-px w-8 bg-primary/60" />
             <button
-              onClick={() => focusMia({ autoStart: true })}
+              onClick={() => focusMia()}
               className="text-xs font-black tracking-[0.2em] uppercase text-primary hover:text-primary/80 transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >

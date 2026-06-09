@@ -64,7 +64,7 @@ export default function MiaSection() {
 
             {/* CTA */}
             <button
-              onClick={() => focusMia({ autoStart: true })}
+              onClick={() => focusMia()}
               className="flex items-center gap-3 px-10 py-4 bg-primary text-primary-foreground font-black tracking-widest uppercase hover:bg-primary/90 transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1rem" }}
             >
