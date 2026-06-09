@@ -2,17 +2,10 @@
 
 import { Phone, ChevronDown } from "lucide-react"
 import { openApplyModal } from "./ApplyModal"
+import { focusMia } from "./MiaPanel"
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
-}
-
-function focusMia() {
-  const el = document.getElementById("hero-mia")
-  if (!el) return
-  el.scrollIntoView({ behavior: "smooth", block: "center" })
-  el.style.outline = "2px solid var(--color-primary)"
-  setTimeout(() => { el.style.outline = "" }, 1200)
 }
 
 export default function Header() {

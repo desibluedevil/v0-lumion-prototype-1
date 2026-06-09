@@ -275,6 +275,20 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     }, 500)
   }
 
+  function goBackOneStep() {
+    if (stepIndex === 0) return
+    const prevStep = stepIndex - 1
+    const prevAnswers = answers.slice(0, prevStep)
+    // Remove the last user bubble and the last Mia question bubble for this step
+    setMessages((prev) => {
+      // Drop the last Mia question + last user answer (2 messages)
+      return prev.slice(0, prev.length - 2)
+    })
+    setAnswers(prevAnswers)
+    setStepIndex(prevStep)
+    setOptionsVisible(true)
+  }
+
   function handleOption(option: string) {
     const newAnswers = [...answers, option]
     const newStep = stepIndex + 1
@@ -543,6 +557,17 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
                     {opt}
                   </button>
                 ))}
+                {stepIndex > 0 && (
+                  <button
+                    type="button"
+                    onClick={goBackOneStep}
+                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors mt-1 pt-1"
+                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  >
+                    <ChevronLeft size={11} />
+                    Back
+                  </button>
+                )}
               </div>
             )}
 
