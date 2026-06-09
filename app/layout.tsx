@@ -24,7 +24,6 @@ export const metadata: Metadata = {
   title: 'Western Welding Academy — Only the Best Welders Train Here',
   description:
     'Trade school for pipeline welders. 2,000+ graduates. 94% job placement. Programs from 12–24 weeks. See if WWA is a fit with Mia, our enrollment assistant.',
-  generator: 'v0.app',
 }
 
 export default function RootLayout({
