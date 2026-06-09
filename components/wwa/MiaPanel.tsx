@@ -10,8 +10,8 @@ import {
   ChevronLeft,
   User,
   Clipboard,
-  AlertCircle,
   RotateCcw,
+  Send,
   X,
   ChevronDown,
   ChevronUp,
@@ -205,7 +205,7 @@ export function focusMia(intent: FocusMiaIntent = {}) {
 
 // ─── Types ─�����───────────���──────────────────────────────────────────────────────
 
-type Message = { role: "mia" | "user"; text: string }
+type Message = { role: "mia" | "user" | "status"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
 type ContactPref = "Text" | "Call" | "Email"
 type BestTime = "Morning" | "Afternoon" | "Evening"
@@ -236,6 +236,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const [optionsVisible, setOptionsVisible] = useState(false)
   const [groundedReady, setGroundedReady] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [freeInput, setFreeInput] = useState("")
+  const [freeAnswering, setFreeAnswering] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   // Track whether the user has scrolled up manually so we don't hijack their position.
@@ -429,6 +431,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setOptionsVisible(true)
   }
 
+  // Status lines shown between user answer and next Mia question / grounded response
+  const STEP_STATUS: Record<number, string> = {
+    0: "Got it. I'll use that to check which program path makes the most sense.",
+    1: "Checking beginner vs. advanced program fit…",
+    2: "Looking at how soon enrollment should follow up…",
+    3: "Checking WWA facts for this answer…",
+  }
+
   function handleOption(option: string) {
     const myGen = ++gen.current
     const newAnswers = [...answers, option]
@@ -436,7 +446,11 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
     setAnswers(newAnswers)
     setOptionsVisible(false)
-    setMessages((prev) => [...prev, { role: "user", text: option }])
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", text: option },
+      { role: "status", text: STEP_STATUS[stepIndex] ?? "" },
+    ])
 
     if (newStep < STEPS.length) {
       setTimeout(() => {
@@ -444,7 +458,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         setStepIndex(newStep)
         setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStep].question }])
         setOptionsVisible(true)
-      }, 350)
+      }, 700)
     } else {
       // All 4 answers in — show grounded concern response then bridge
       const resp = CONCERN_RESPONSES[option]
@@ -465,7 +479,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           pushMia(bridgeText)
           setGroundedReady(true)
         }, 900)
-      }, 350)
+      }, 700)
     }
   }
 
@@ -486,6 +500,56 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     if (!canSubmit) return
     setSubmitted(true)
     setPhase("handoff")
+  }
+
+  // ── Freeform "Ask Mia" ─────────────────────────────────────────────────────
+
+  function matchFreeInput(q: string): string {
+    const t = q.toLowerCase()
+    if (/cost|tuition|financ|price|pay|afford|money/.test(t))
+      return "Programs range from $17,050 to $35,800. Housing, tools, and materials are included. Financing may be available for qualified applicants. An advisor can walk you through options."
+    if (/hous|wyom|gillett|moving?|relocat|where|locat/.test(t))
+      return "WWA is in Gillette, Wyoming. Housing is included, which helps students relocate for training."
+    if (/no experience|beginner|never|never welded|zero|start|new to/.test(t))
+      return "You do not need prior welding experience for the beginner path. Foundational Pipe Welder starts from zero."
+    if (/job|hire|hired|salary|wage|earn|placement|career/.test(t))
+      return "WWA reports a 94% hire rate. Salary ranges vary by employer, location, experience, and role."
+    if (/program|fit|which|right for|suit|match|pick/.test(t))
+      return "I can check that. I'll look at your goal, experience, timeline, and biggest concern, then suggest a starting point."
+    return "That's a good question. An enrollment advisor can give you a direct answer based on your situation."
+  }
+
+  function handleFreeInput() {
+    const q = freeInput.trim()
+    if (!q || freeAnswering) return
+    const myGen = gen.current // don't bump — we're not resetting the guided flow
+
+    setFreeInput("")
+    setFreeAnswering(true)
+    setOptionsVisible(false)
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", text: q },
+      { role: "status", text: "Checking WWA facts for this question…" },
+    ])
+
+    setTimeout(() => {
+      if (gen.current !== myGen) return
+      const answer = matchFreeInput(q)
+      setMessages((prev) => [
+        ...prev,
+        { role: "mia", text: answer },
+        { role: "status", text: "Returning to your fit check…" },
+      ])
+      setTimeout(() => {
+        if (gen.current !== myGen) return
+        setFreeAnswering(false)
+        // Only re-show options if still in the guided flow phase (not grounded/summary)
+        if (phase === "flow" && stepIndex < STEPS.length) {
+          setOptionsVisible(true)
+        }
+      }, 500)
+    }, 650)
   }
 
   function resetFlow() {
@@ -706,6 +770,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             {messages.map((msg, i) =>
               msg.role === "mia" ? (
                 <MiaBubble key={i} text={msg.text} />
+              ) : msg.role === "status" ? (
+                <StatusPill key={i} text={msg.text} />
               ) : (
                 <UserBubble key={i} text={msg.text} />
               )
@@ -778,11 +844,47 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           </>
         )}
       </div>
+
+      {/* Freeform "Ask Mia" input — shown during flow and grounded phases only */}
+      {(phase === "flow" || phase === "grounded") && (
+        <div className="px-5 pb-4 pt-2 border-t border-border/60 bg-background/95">
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleFreeInput() }}
+            className="flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={freeInput}
+              onChange={(e) => setFreeInput(e.target.value)}
+              placeholder="Ask Mia about cost, housing, experience, jobs, or programs…"
+              disabled={freeAnswering}
+              className="flex-1 min-w-0 bg-secondary border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={!freeInput.trim() || freeAnswering}
+              aria-label="Send question to Mia"
+              className="shrink-0 w-8 h-8 flex items-center justify-center border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Send size={13} />
+            </button>
+          </form>
+        </div>
+      )}
     </PanelShell>
   )
 }
 
 // ─── Idle State ───────────────────────────────────────────────────────────────
+
+const PLAN_STEPS = [
+  { n: 1, label: "Understand your goal" },
+  { n: 2, label: "Check your experience level" },
+  { n: 3, label: "Look at your timeline" },
+  { n: 4, label: "Answer your biggest concern" },
+  { n: 5, label: "Recommend a next step" },
+  { n: 6, label: "Prepare advisor handoff if you're ready" },
+]
 
 function IdleState({
   onStart,
@@ -802,22 +904,44 @@ function IdleState({
               className="text-xs font-bold tracking-wider uppercase text-primary"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
-              {"You're checking fit for: "}
+              {"Checking fit for: "}
               <span className="text-foreground">{programContext}</span>
             </p>
           </div>
         )}
-        <MiaBubble text="Most people who land here are interested but unsure. I'm here to help you figure out if this is actually a fit — not to sell you." />
-        <MiaBubble text="4 questions. 2 minutes. Straight answer at the end." />
-        <div className="ml-9 flex items-start gap-2 border border-border bg-secondary/40 px-3 py-2.5">
-          <AlertCircle size={13} className="text-primary mt-0.5 shrink-0" />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            If WWA isn&apos;t the right fit, I&apos;ll tell you that too. No pressure. No follow-up
-            unless you ask.
-          </p>
+
+        {/* Mia's opening message */}
+        <MiaBubble text="Tell me what you're trying to figure out. I'll check program fit, cost, housing, timeline, and whether an advisor should follow up." />
+
+        {/* Mia's Plan card */}
+        <div className="ml-9 border border-border bg-secondary/30">
+          <div className="px-3 py-2 border-b border-border flex items-center gap-2">
+            <Clipboard size={11} className="text-primary shrink-0" />
+            <span
+              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              Mia&apos;s Plan
+            </span>
+          </div>
+          <ol className="px-3 py-2.5 space-y-1.5">
+            {PLAN_STEPS.map(({ n, label }) => (
+              <li key={n} className="flex items-start gap-2.5">
+                <span
+                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-border text-[9px] font-black text-muted-foreground mt-px"
+                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                >
+                  {n}
+                </span>
+                <span className="text-xs text-muted-foreground leading-snug">{label}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
-      <div className="pt-4 pb-1">
+
+      {/* CTAs */}
+      <div className="pt-4 pb-1 space-y-2">
         <button
           type="button"
           onClick={onStart}
@@ -827,12 +951,55 @@ function IdleState({
           Start Fit Check
           <ChevronRight size={15} />
         </button>
+        <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+          No pressure. If WWA is not the right fit, I&apos;ll say that.
+        </p>
       </div>
     </div>
   )
 }
 
 // ─── Fit Summary Card ─────────────────────────────────────────────────────────
+
+// Build "Why Mia recommended this" bullets from raw answers
+function whyBullets(answers: string[]): string[] {
+  const [goal, experience, timeline, concern] = answers
+  const bullets: string[] = []
+  if (goal) bullets.push(`Your goal is ${goal.replace(/\.$/, "").toLowerCase()}.`)
+  if (experience?.includes("None") || experience?.includes("beginner"))
+    bullets.push("You have no prior welding experience.")
+  else if (experience?.includes("on the job"))
+    bullets.push("You have some on-the-job welding experience.")
+  else if (experience === "Experienced welder")
+    bullets.push("You are an experienced welder.")
+  if (timeline?.includes("ASAP"))
+    bullets.push("You want to start as soon as possible.")
+  else if (timeline?.includes("30–90"))
+    bullets.push("You want to start within 30–90 days.")
+  else if (timeline?.includes("Later this year"))
+    bullets.push("You are targeting later this year.")
+  if (concern) bullets.push(`Your main concern is ${concern.replace(/\s*—.*$/, "").toLowerCase()}.`)
+  return bullets
+}
+
+// Derive 2–3 suggested questions based on the student's concern
+function suggestedQuestions(concern?: string): string[] {
+  const base = [
+    '"When is the next available cohort?"',
+    '"What does a typical week in the program look like?"',
+  ]
+  if (!concern) return base
+  const t = concern.toLowerCase()
+  if (t.includes("cost"))
+    return ['"What financing options could I qualify for?"', '"What is the all-in cost with housing?"', ...base.slice(0, 1)]
+  if (t.includes("location") || t.includes("wyom"))
+    return ['"What does housing look like if I move to Gillette?"', '"Is there support for relocating students?"', ...base.slice(0, 1)]
+  if (t.includes("experience") || t.includes("skill"))
+    return ['"Am I ready for the program at my experience level?"', ...base]
+  if (t.includes("outcome") || t.includes("hired"))
+    return ['"What do most graduates earn in the first year?"', '"Which employers hire WWA graduates?"', ...base.slice(0, 1)]
+  return base
+}
 
 function FitSummaryCard({
   answers,
@@ -849,43 +1016,96 @@ function FitSummaryCard({
   onBack: () => void
   onReset: () => void
 }) {
-  const [goal, experience, timeline, concern] = answers
+  const [, , , concern] = answers
+  const bullets = whyBullets(answers)
+  const questions = suggestedQuestions(concern)
+
+  const nextStepText =
+    intent === "High"
+      ? "Talk to enrollment this week."
+      : intent === "Medium"
+      ? "Get a program guide and keep exploring."
+      : "Get a program guide and keep exploring."
+
   return (
     <div className="space-y-3 pt-1">
-      <div className="border border-border bg-secondary">
-        <div className="px-4 py-2.5 border-b border-border">
-          <span
-            className="text-xs font-black tracking-widest uppercase text-foreground"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            Your Fit Summary
-          </span>
-        </div>
-        <div className="px-4 py-3 space-y-2">
-          {[
-            ["Recommended program", program.name],
-            ["Duration", program.duration],
-            ["All-in tuition", program.tuition],
-            ...(experience ? [["Your experience", experience]] as [string, string][] : []),
-            ...(goal ? [["Your goal", goal]] as [string, string][] : []),
-            ...(timeline ? [["Your start timeline", timeline]] as [string, string][] : []),
-            ...(concern ? [["Main question", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
-          ].map(([label, value]) => (
-            <div key={label} className="flex justify-between items-start gap-4 text-xs">
-              <span className="text-muted-foreground shrink-0">{label}</span>
-              <span className="font-semibold text-foreground text-right">{value}</span>
-            </div>
-          ))}
-        </div>
+
+      {/* Title + subtitle */}
+      <div>
+        <h2
+          className="text-sm font-black tracking-widest uppercase text-foreground"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Your Fit Summary
+        </h2>
+        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+          Based on your goal, experience, timeline, and main concern.
+        </p>
       </div>
 
-      <p className="text-[11px] text-muted-foreground/70 leading-relaxed px-1">
-        This is a fit check, not an admissions decision — a suggested starting point based on your answers.
+      {/* Section 1 — Recommended Starting Point */}
+      <SummarySection label="Recommended Starting Point">
+        <div className="space-y-1.5">
+          {[
+            ["Program", program.name],
+            ["Duration", program.duration],
+            ["All-in tuition", program.tuition],
+          ].map(([l, v]) => (
+            <div key={l} className="flex justify-between items-start gap-3 text-xs">
+              <span className="text-muted-foreground shrink-0">{l}</span>
+              <span className="font-semibold text-foreground text-right">{v}</span>
+            </div>
+          ))}
+          <p className="text-[11px] text-muted-foreground/80 leading-snug pt-0.5">
+            Starting point is based on your experience level and stated goal.
+          </p>
+        </div>
+      </SummarySection>
+
+      {/* Section 2 — Why Mia Recommended This */}
+      {bullets.length > 0 && (
+        <SummarySection label="Why Mia Recommended This">
+          <ul className="space-y-1.5">
+            {bullets.map((b) => (
+              <li key={b} className="flex items-start gap-2 text-xs">
+                <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
+                <span className="text-foreground leading-snug">{b}</span>
+              </li>
+            ))}
+          </ul>
+        </SummarySection>
+      )}
+
+      {/* Section 3 — What To Ask Enrollment */}
+      <SummarySection label="What To Ask Enrollment">
+        <ul className="space-y-1.5">
+          {questions.map((q) => (
+            <li key={q} className="flex items-start gap-2 text-xs">
+              <span className="shrink-0 w-1 h-1 rounded-full bg-border mt-1.5" />
+              <span className="text-muted-foreground leading-snug italic">{q}</span>
+            </li>
+          ))}
+        </ul>
+      </SummarySection>
+
+      {/* Section 4 — Next Step */}
+      <div className="border border-primary/30 bg-primary/5 px-3 py-2.5">
+        <p
+          className="text-[10px] font-black tracking-widest uppercase text-primary mb-1"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Suggested Next Step
+        </p>
+        <p className="text-xs text-foreground font-semibold leading-snug">{nextStepText}</p>
+      </div>
+
+      {/* Guardrail */}
+      <p className="text-[10px] text-muted-foreground/60 leading-relaxed px-0.5">
+        This is a fit check, not an admissions decision.
       </p>
 
-      <MiaBubble text="Want me to send this to an enrollment advisor? They can help with financing, housing, next start dates, and whether WWA is the right move." />
-
-      <div className="ml-9 space-y-2">
+      {/* CTAs */}
+      <div className="space-y-2 pt-1">
         <button
           type="button"
           onClick={onCapture}
@@ -895,15 +1115,24 @@ function FitSummaryCard({
           Connect Me With Enrollment
           <ChevronRight size={15} />
         </button>
-        <button
-          type="button"
-          onClick={onBack}
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          <ChevronLeft size={12} />
-          Edit Answers
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex-1 py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            <ChevronLeft size={12} />
+            Edit Answers
+          </button>
+          <a
+            href="tel:18005551234"
+            className="flex-1 py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Call Directly
+          </a>
+        </div>
         <button
           type="button"
           onClick={onReset}
@@ -913,14 +1142,23 @@ function FitSummaryCard({
           <RotateCcw size={10} />
           Start Over
         </button>
-        <a
-          href="tel:18005551234"
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center"
+      </div>
+    </div>
+  )
+}
+
+function SummarySection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-border bg-secondary/30">
+      <div className="px-3 py-2 border-b border-border">
+        <span
+          className="text-[10px] font-black tracking-widest uppercase text-foreground"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          Call Directly: 1-800-555-1234
-        </a>
+          {label}
+        </span>
       </div>
+      <div className="px-3 py-2.5">{children}</div>
     </div>
   )
 }
@@ -947,81 +1185,126 @@ function StudentConfirmation({
   onClose?: () => void
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [, experience, timeline, concern] = answers
+
+  const MIA_RECEIPTS = [
+    "Fit summary created",
+    "Program fit matched",
+    "Main concern captured",
+    "Advisor handoff prepared",
+    "Enrollment follow-up queued",
+  ]
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="space-y-4 pb-4">
 
-      {/* ── Success header ─────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 pt-1">
-        <div className="w-9 h-9 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0 mt-0.5">
-          <Check size={16} className="text-green-400" />
-        </div>
-        <div>
-          <p
-            className="text-base font-black tracking-widest uppercase text-foreground leading-tight"
+      {/* ── YOU'RE ALL SET ─────────────────────────────────────────── */}
+      <div className="pt-1">
+        <h2
+          className="text-lg font-black tracking-widest uppercase text-foreground leading-tight"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          {"You're all set."}
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+          {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
+        </p>
+      </div>
+
+      {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
+      <div className="border border-border bg-secondary/30">
+        <div className="px-4 py-2.5 border-b border-border">
+          <span
+            className="text-[10px] font-black tracking-widest uppercase text-foreground"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            {"You're all set!"}
-          </p>
-          <p
-            className="text-xs text-muted-foreground mt-1.5 leading-relaxed"
-          >
-            {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
-          </p>
+            What Mia Did
+          </span>
         </div>
+        <ul className="px-4 py-3 space-y-2">
+          {MIA_RECEIPTS.map((item) => (
+            <li key={item} className="flex items-center gap-2.5 text-xs">
+              <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-primary/10 border border-primary/30">
+                <Check size={9} className="text-primary" />
+              </div>
+              <span className="text-foreground">{item}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* ── What was sent summary ──────────────────────────────────── */}
-      <div className="border border-border bg-secondary/50 px-4 py-3 space-y-2.5">
-        <p
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Sent to enrollment
-        </p>
-        {[
-          ["Recommended program", program.name],
-          ["Contact", `${lead.name} · ${lead.phone}`],
-          ["Preferred reach", `${lead.contact} · ${lead.time}`],
-        ].map(([label, value]) => (
-          <div key={label} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{label}</span>
-            <span className="font-semibold text-foreground text-right">{value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Primary actions ────────────────────────────────────────── */}
-      <div className="space-y-2">
-        <button
-          type="button"
-          onClick={onReset}
-          className="w-full py-3 bg-primary text-primary-foreground text-xs font-black tracking-widest uppercase hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          <RotateCcw size={12} />
-          Start Over
-        </button>
-
-        {/* Collapsible enrollment profile disclosure */}
+      {/* ── WHAT THE ADVISOR WILL SEE ─────────────────────────────── */}
+      <div className="border border-border bg-secondary/30">
         <button
           type="button"
           onClick={() => setProfileOpen((v) => !v)}
-          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-secondary/60 transition-colors"
           aria-expanded={profileOpen}
         >
-          <Clipboard size={12} />
-          View Enrollment Profile
-          {profileOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          <div className="flex items-center gap-2">
+            <Clipboard size={11} className="text-muted-foreground shrink-0" />
+            <span
+              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              What the Advisor Will See
+            </span>
+          </div>
+          {profileOpen ? <ChevronUp size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
         </button>
 
-        {/* Close panel */}
+        {profileOpen && (
+          <>
+            {/* Student-readable summary fields */}
+            <div className="border-t border-border px-4 py-3 space-y-2">
+              {[
+                ["Name", lead.name],
+                ["Phone", lead.phone],
+                ["Preferred contact", lead.contact],
+                ["Best time", lead.time],
+                ["Recommended program", program.name],
+                ...(experience ? [["Experience level", experience]] as [string, string][] : []),
+                ...(timeline ? [["Timeline", timeline]] as [string, string][] : []),
+                ...(concern ? [["Main concern", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between items-start gap-4 text-xs">
+                  <span className="text-muted-foreground shrink-0">{label}</span>
+                  <span className="font-semibold text-foreground text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+            {/* Full advisor profile below */}
+            <div className="border-t border-border px-1 py-1">
+              <EnrollmentView
+                lead={lead}
+                answers={answers}
+                program={program}
+                intent={intent}
+                advisorScript={advisorScript}
+                conversationSummary={conversationSummary}
+                embedded
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Actions ────────────────────────────────────────────────── */}
+      <div className="space-y-2 pt-1">
+        <button
+          type="button"
+          onClick={onReset}
+          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          <RotateCcw size={11} />
+          Start Over
+        </button>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/60 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             <X size={11} />
@@ -1029,33 +1312,6 @@ function StudentConfirmation({
           </button>
         )}
       </div>
-
-      {/* ── Enrollment Profile (hidden by default) ─────────────────── */}
-      {profileOpen && (
-        <div className="border border-border">
-          {/* Label strip */}
-          <div className="px-4 py-2.5 border-b border-border bg-secondary/60 flex items-center gap-2">
-            <Clipboard size={11} className="text-muted-foreground shrink-0" />
-            <p
-              className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              Details the advisor receives
-            </p>
-          </div>
-          <div className="px-1 py-1">
-            <EnrollmentView
-              lead={lead}
-              answers={answers}
-              program={program}
-              intent={intent}
-              advisorScript={advisorScript}
-              conversationSummary={conversationSummary}
-              embedded
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -1080,12 +1336,11 @@ function EnrollmentView({
   embedded?: boolean
 }) {
   const [goal, experience, timeline, concern] = answers
+
+  // Intent display helpers
+  const intentLabel = intent === "High" ? "High" : intent === "Medium" ? "Warm" : "Researching"
   const intentColor =
-    intent === "High"
-      ? "text-green-400"
-      : intent === "Medium"
-      ? "text-yellow-400"
-      : "text-muted-foreground"
+    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
   const intentBg =
     intent === "High"
       ? "bg-green-500/10 border-green-500/30"
@@ -1093,17 +1348,72 @@ function EnrollmentView({
       ? "bg-yellow-500/10 border-yellow-500/30"
       : "bg-secondary border-border"
 
+  // Derive routing signals from answers
+  const concernLabel = concern?.replace(/\s*—.*$/, "").trim() ?? "—"
+  const solvableBlocker =
+    concern?.toLowerCase().includes("cost")
+      ? "Financing options available — solvable."
+      : concern?.toLowerCase().includes("location") || concern?.toLowerCase().includes("wyom")
+      ? "Housing included — solvable."
+      : concern?.toLowerCase().includes("experience")
+      ? "Beginner path available — solvable."
+      : concern?.toLowerCase().includes("outcome")
+      ? "94% hire rate, salary data available — solvable."
+      : "Enrollment advisor can address directly."
+  const contactWillingness = lead.phone ? "Provided phone — willing to be contacted." : "No phone — email-only follow-up."
+  const fitSignal =
+    experience?.includes("None") || experience?.includes("beginner")
+      ? "Beginner track fit confirmed."
+      : experience?.includes("on the job")
+      ? "Mid-level track eligible."
+      : "Advanced track eligible."
+
+  // Concern talking points
+  const talkingPoints: Record<string, string[]> = {
+    cost: [
+      "Walk through financing eligibility.",
+      "Clarify all-in cost including housing and tools.",
+      "Mention potential employer reimbursement programs.",
+    ],
+    location: [
+      "Explain included housing in Gillette, WY.",
+      "Describe what a typical week looks like on site.",
+      "Offer to connect with a current student if helpful.",
+    ],
+    experience: [
+      "Confirm the beginner path starts from zero.",
+      "Explain the hands-on progression model.",
+      "Share what students with no background have achieved.",
+    ],
+    outcome: [
+      "Lead with the 94% hire rate.",
+      "Share salary ranges for first-year graduates.",
+      "Name specific employer partners if known.",
+    ],
+    fit: [
+      "Walk through program options based on their goal.",
+      "Discuss timeline alignment with next cohort dates.",
+      "Offer a campus visit or virtual tour if available.",
+    ],
+  }
+  const talkingPointKey = Object.keys(talkingPoints).find((k) =>
+    concern?.toLowerCase().includes(k)
+  ) ?? "fit"
+  const concernPoints = talkingPoints[talkingPointKey]
+
+  // Next best action
   const nextAction =
     intent === "High"
-      ? `Call or text ${lead.name || "this lead"} within 4 hours. Lead with how WWA addresses their ${concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "concern"} concern. Ask about their target start date.`
+      ? `Text ${lead.name || "this student"} today with financing options, housing details, and next cohort timing.`
       : intent === "Medium"
-      ? `Follow up within 48 hours. Send program details for ${program.name}. Focus on financing and next cohort dates.`
-      : `Add to nurture sequence. Send program overview email. Check back in 2–3 weeks.`
+      ? `Follow up within 48 hours. Send program guide for ${program.name} and next cohort start dates.`
+      : `Add to nurture sequence. Send program overview. Check back in 2–3 weeks.`
 
   return (
     <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
-      {/* Lead header */}
-      <div className="flex items-center justify-between pb-3 border-b border-border">
+
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="flex items-start justify-between pb-3 border-b border-border gap-3">
         <div>
           <p
             className="text-sm font-black tracking-widest uppercase text-foreground"
@@ -1111,33 +1421,27 @@ function EnrollmentView({
           >
             Enrollment Lead Profile
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Mia-qualified &middot;{" "}
-            {new Date().toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-snug">
+            Generated by Mia from the student&apos;s fit check &middot;{" "}
+            {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
         </div>
         <span
-          className={`text-[10px] font-black tracking-widest uppercase px-2.5 py-1 border ${intentBg} ${intentColor}`}
+          className={`shrink-0 text-[10px] font-black tracking-widest uppercase px-2.5 py-1 border ${intentBg} ${intentColor}`}
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          {intent} Intent
+          {intentLabel} Intent
         </span>
       </div>
 
-      {/* Student Snapshot */}
+      {/* ── 1. Student Snapshot ────────────────────────────────────── */}
       <InfoSection title="Student Snapshot">
         {[
           ["Name", lead.name || "—"],
           ["Phone", lead.phone || "—"],
-          ["Email", lead.email || "Not provided"],
-          ["Contact pref.", `${lead.contact} · ${lead.time}`],
-          ["Program", program.name],
-          ["Tuition", program.tuition],
-          ["Duration", program.duration],
+          ["Preferred contact", lead.contact || "—"],
+          ["Best time", lead.time || "—"],
+          ["Recommended program", program.name],
         ].map(([l, v]) => (
           <div key={l} className="flex justify-between items-start gap-4 text-xs">
             <span className="text-muted-foreground shrink-0">{l}</span>
@@ -1146,59 +1450,69 @@ function EnrollmentView({
         ))}
       </InfoSection>
 
-      {/* Why Mia Routed This Lead */}
+      {/* ── 2. Why Mia Routed This Lead ───────────────────────────── */}
       <InfoSection title="Why Mia Routed This Lead">
-        <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
-          <p>Goal: <span className="text-foreground">{goal ?? "—"}</span></p>
-          <p>Experience: <span className="text-foreground">{experience ?? "—"}</span></p>
-          <p>Timeline: <span className="text-foreground">{timeline ?? "—"}</span></p>
-          <p>
-            Intent:{" "}
-            <span className={`font-semibold ${intentColor}`}>{intent}</span>
-            {" — "}
-            {intent === "High"
-              ? "ready ASAP or within 30–90 days"
-              : intent === "Medium"
-              ? "planning later this year"
-              : "still researching, not yet ready"}
-          </p>
-        </div>
+        {[
+          ["Intent", <span key="i" className={`font-semibold ${intentColor}`}>{intentLabel}</span>],
+          ["Timeline", timeline ?? "—"],
+          ["Solvable blocker", solvableBlocker],
+          ["Contact willingness", contactWillingness],
+          ["Fit signal", fitSignal],
+        ].map(([l, v]) => (
+          <div key={String(l)} className="flex justify-between items-start gap-4 text-xs">
+            <span className="text-muted-foreground shrink-0">{l}</span>
+            <span className="font-semibold text-foreground text-right">{v}</span>
+          </div>
+        ))}
       </InfoSection>
 
-      {/* Main Concern */}
+      {/* ── 3. Main Concern ───────────────────────────────────────── */}
       <InfoSection title="Main Concern">
-        <p className="text-xs text-foreground leading-relaxed">
-          {concern ?? "—"}
+        <p className="text-xs font-semibold text-foreground mb-2">{concernLabel}</p>
+        <p
+          className="text-[10px] font-black tracking-widest uppercase text-muted-foreground mb-1.5"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Suggested Talking Points
         </p>
-        {concern && CONCERN_RESPONSES[concern] && (
-          <p className="text-xs text-muted-foreground leading-relaxed mt-1.5 italic">
-            Mia addressed: {CONCERN_RESPONSES[concern].headline}
-          </p>
-        )}
+        <ul className="space-y-1.5">
+          {concernPoints.map((pt) => (
+            <li key={pt} className="flex items-start gap-2 text-xs">
+              <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
+              <span className="text-muted-foreground leading-snug">{pt}</span>
+            </li>
+          ))}
+        </ul>
       </InfoSection>
 
-      {/* Recommended Next Best Action */}
-      <InfoSection title="Recommended Next Best Action">
-        <p className="text-xs text-foreground leading-relaxed">{nextAction}</p>
-      </InfoSection>
-
-      {/* Conversation Summary */}
+      {/* ── 4. Conversation Summary ───────────────────────────────── */}
       <InfoSection title="Conversation Summary">
         <p className="text-xs text-muted-foreground leading-relaxed">{conversationSummary}</p>
       </InfoSection>
 
-      {/* Suggested opener */}
-      <InfoSection title="Suggested Opener">
+      {/* ── 5. Recommended Next Best Action ──────────────────────── */}
+      <div className="border border-primary/30 bg-primary/5 px-3 py-2.5">
+        <p
+          className="text-[10px] font-black tracking-widest uppercase text-primary mb-1"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Recommended Next Best Action
+        </p>
+        <p className="text-xs text-foreground font-semibold leading-snug">{nextAction}</p>
+      </div>
+
+      {/* ── 6. Suggested Advisor Opener ───────────────────────────── */}
+      <InfoSection title="Suggested Advisor Opener">
         <p className="text-xs text-foreground italic leading-relaxed">{advisorScript}</p>
       </InfoSection>
 
-      {/* Advisor actions */}
-      <div className="space-y-2">
+      {/* ── Actions ───────────────────────────────────────────────── */}
+      <div className="space-y-2 pt-1">
         <p
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+          className="text-[10px] font-black tracking-widest uppercase text-muted-foreground"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          Advisor Actions
+          Actions
         </p>
         <div className="grid grid-cols-3 gap-2">
           {[
@@ -1209,7 +1523,7 @@ function EnrollmentView({
             <button
               key={label}
               type="button"
-              className="py-2.5 border border-border text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
+              className="py-3 border border-border text-[10px] font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               <Icon size={13} />
@@ -1329,6 +1643,21 @@ function StepProgress({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function StatusPill({ text }: { text: string }) {
+  if (!text) return null
+  return (
+    <div className="flex items-center gap-2 ml-9 py-1">
+      <span className="w-1 h-1 rounded-full bg-primary shrink-0 animate-pulse" />
+      <span
+        className="text-[11px] text-primary/80 italic leading-snug"
+        style={{ fontFamily: "var(--font-sans)" }}
+      >
+        {text}
+      </span>
     </div>
   )
 }
