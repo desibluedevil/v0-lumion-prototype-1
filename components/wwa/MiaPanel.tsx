@@ -324,8 +324,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         return
       }
 
-      // Default: just set context; if idle stay idle (user clicks Start themselves)
-      setPhase((prev) => prev)
+      // Default: open/reset to idle so user sees Mia's Plan and clicks Start themselves
+      setPhase("idle")
+      setStepIndex(0)
+      setAnswers([])
+      setMessages([])
+      setOptionsVisible(false)
+      setGroundedReady(false)
+      setSubmitted(false)
     }
     focusMiaListeners.add(handler)
     return () => { focusMiaListeners.delete(handler) }
