@@ -12,6 +12,9 @@ import {
   Clipboard,
   AlertCircle,
   RotateCcw,
+  X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
@@ -165,23 +168,42 @@ function buildConversationSummary(answers: string[], program: { name: string }):
 }
 
 // ─── Focus event bus ──────────────────────────────────────────────────────────
-// Any component can call focusMia(programName?) to scroll to and optionally
-// pre-seed the Mia panel with a program context, without prop drilling.
+// Any component can call focusMia(intent) to open / preload the Mia panel.
+//
+// intent.programName  — pre-seeds the program context (used by program cards)
+// intent.autoStart    — immediately starts the flow from step 0
+// intent.jumpToConcern — skips straight to the Concern step, optionally with
+//                        a pre-selected answer (used by "Ask about financing")
 
-type FocusMiaListener = (programName?: string) => void
-const focusMiaListeners = new Set<FocusMiaListener>()
-
-export function focusMia(programName?: string) {
-  const el = document.getElementById("hero-mia")
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "center" })
-    el.style.outline = "2px solid var(--color-primary)"
-    setTimeout(() => { el.style.outline = "" }, 1200)
-  }
-  focusMiaListeners.forEach((fn) => fn(programName))
+export interface FocusMiaIntent {
+  programName?: string
+  autoStart?: boolean
+  jumpToConcern?: boolean
+  prefillConcern?: string
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+type FocusMiaListener = (intent: FocusMiaIntent) => void
+const focusMiaListeners = new Set<FocusMiaListener>()
+
+// revealMia — separate bus so FloatingMia can re-open the panel from any CTA
+type RevealMiaListener = () => void
+const revealMiaListeners = new Set<RevealMiaListener>()
+export function revealMia() {
+  revealMiaListeners.forEach((fn) => fn())
+}
+export function onRevealMia(fn: RevealMiaListener) {
+  revealMiaListeners.add(fn)
+  return () => revealMiaListeners.delete(fn)
+}
+
+export function focusMia(intent: FocusMiaIntent = {}) {
+  // Always re-open the panel first (if hidden on desktop or mobile)
+  revealMia()
+  // Then notify panel listeners with the intent
+  focusMiaListeners.forEach((fn) => fn(intent))
+}
+
+// ─── Types ─�����───────────���──────────────────────────────────────────────────────
 
 type Message = { role: "mia" | "user"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
@@ -198,7 +220,7 @@ interface LeadData {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function MiaPanel({ compact = false }: { compact?: boolean }) {
+export default function MiaPanel({ compact = false, onClose }: { compact?: boolean; onClose?: () => void }) {
   const [stepIndex, setStepIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
@@ -211,49 +233,159 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     contact: "Text",
     time: "Morning",
   })
-  const [activeTab, setActiveTab] = useState<"student" | "enrollment">("student")
   const [optionsVisible, setOptionsVisible] = useState(false)
   const [groundedReady, setGroundedReady] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Track whether the user has scrolled up manually so we don't hijack their position.
+  // Reset to false whenever a phase change happens (new screen = resume auto-scroll).
+  const userScrolledUp = useRef(false)
+  // Generation counter — increments whenever the flow is reset or a new intent fires.
+  // setTimeout callbacks capture their generation and bail if it's stale.
+  const gen = useRef(0)
 
   // Register this panel as a focusMia listener
   useEffect(() => {
-    const handler: FocusMiaListener = (name) => {
-      setProgramContext(name ?? null)
-      // If idle, auto-start (the context label will show in IdleState briefly,
-      // then startFlow will run). If already in a flow, just update context.
-      setPhase((prev) => {
-        if (prev === "idle") return "idle" // IdleState renders context label; user clicks Start
-        return prev
-      })
+    const handler: FocusMiaListener = (intent) => {
+      const { programName, autoStart, jumpToConcern, prefillConcern } = intent
+      // Bump generation so any in-flight timeouts from the previous intent become no-ops
+      const myGen = ++gen.current
+
+      if (programName) setProgramContext(programName)
+
+      if (jumpToConcern) {
+        // Jump directly to the Concern step, optionally pre-selecting an answer
+        setPhase("flow")
+        setStepIndex(3)
+        setAnswers([])
+        setOptionsVisible(false)
+        setGroundedReady(false)
+        setSubmitted(false)
+
+        // Build a condensed message thread leading up to the Concern question
+        const intro: Message[] = [
+          { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
+          { role: "mia", text: STEPS[3].question },
+        ]
+
+        if (prefillConcern) {
+          // Pre-select the concern answer and immediately run through grounded response
+          const resp = CONCERN_RESPONSES[prefillConcern]
+          const responseText = resp
+            ? `${resp.headline}\n\n${resp.body}`
+            : "That's a fair concern. An advisor can walk you through specifics."
+          const bridgeText =
+            "Based on what you've told me, I can pull up your fit summary — which program matches, what it costs, and what to expect. Ready?"
+
+          setMessages([
+            ...intro,
+            { role: "user", text: prefillConcern },
+          ])
+          // Pad to index 3 so destructuring [goal, experience, timeline, concern] works correctly
+          setAnswers(["", "", "", prefillConcern])
+          setPhase("grounded")
+          setTimeout(() => {
+            if (gen.current !== myGen) return
+            setMessages((prev) => [...prev, { role: "mia", text: responseText }])
+            setTimeout(() => {
+              if (gen.current !== myGen) return
+              setMessages((prev) => [...prev, { role: "mia", text: bridgeText }])
+              setGroundedReady(true)
+            }, 700)
+          }, 300)
+        } else {
+          setMessages(intro)
+          setOptionsVisible(true)
+        }
+        return
+      }
+
+      if (autoStart) {
+        // Start the flow fresh from step 0
+        // Clear programContext unless a specific program was provided
+        if (!programName) setProgramContext(null)
+        setPhase("flow")
+        setStepIndex(0)
+        setAnswers([])
+        setOptionsVisible(false)
+        setGroundedReady(false)
+        setSubmitted(false)
+        setMessages([
+          { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
+        ])
+        setTimeout(() => {
+          if (gen.current !== myGen) return
+          setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
+          setOptionsVisible(true)
+        }, 400)
+        return
+      }
+
+      // Default: just set context; if idle stay idle (user clicks Start themselves)
+      setPhase((prev) => prev)
     }
     focusMiaListeners.add(handler)
     return () => { focusMiaListeners.delete(handler) }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [, experience, timeline, concern] = answers
   const program = recommendProgram(experience ?? "", programContext)
   const intent = intentLevel(timeline ?? "")
 
-  // Required: name + phone. contact and time have pre-selected defaults so always satisfied.
-  const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0 && !submitted
+  // Required: name + complete phone. contact and time have pre-selected defaults so always satisfied.
+  // A complete US phone in (###) ###-#### format is exactly 14 chars.
+  const phoneDigits = lead.phone.replace(/\D/g, "")
+  const phoneComplete = phoneDigits.length === 10
+  const phonePartial = lead.phone.trim().length > 0 && !phoneComplete
+  const canSubmit = lead.name.trim().length > 0 && phoneComplete && !submitted
 
-  // Auto-scroll: for capture/handoff phases (separate full-panel render) go to top;
-  // for all others (idle, flow, grounded, summary) scroll to bottom so new content is visible.
-  // Uses rAF to ensure DOM has painted before reading scrollHeight.
+  // ── User-scroll detection ──────────────────────────────────────────────────
+  // When the user scrolls up more than 40px from the bottom we stop auto-scrolling.
+  // When they reach the bottom again we re-enable it.
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    requestAnimationFrame(() => {
-      if (phase === "capture" || phase === "handoff") {
-        el.scrollTo({ top: 0, behavior: "smooth" })
-      } else {
-        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+    function onScroll() {
+      if (!el) return
+      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+      userScrolledUp.current = distFromBottom > 40
+    }
+    el.addEventListener("scroll", onScroll, { passive: true })
+    return () => el.removeEventListener("scroll", onScroll)
+  }, [phase]) // re-attach when phase changes (new scrollRef target may render)
+
+  // ── Auto-scroll via MutationObserver ──────────────────────────────────────
+  // Fires after every DOM mutation inside the scroll container so we scroll
+  // after each new message bubble or option chip finishes painting — not just
+  // on React state changes (which precede the paint).
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    function scrollToBottom(smooth: boolean) {
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "instant" })
+    }
+
+    // On phase change always reset user-scroll flag and jump to the right position.
+    userScrolledUp.current = false
+    if (phase === "capture" || phase === "handoff") {
+      el.scrollTo({ top: 0, behavior: "smooth" })
+    } else {
+      scrollToBottom(false)
+    }
+
+    // Watch for DOM mutations (new children added = new messages / chips)
+    const observer = new MutationObserver(() => {
+      if (phase === "capture" || phase === "handoff") return
+      if (!userScrolledUp.current) {
+        scrollToBottom(true)
       }
     })
-  }, [messages, phase, optionsVisible, groundedReady])
+    observer.observe(el, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [phase])
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -264,6 +396,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   // ── Flow ──────────────────────────────────────────────────────────────────
 
   function startFlow() {
+    const myGen = ++gen.current
     setPhase("flow")
     setStepIndex(0)
     setAnswers([])
@@ -277,6 +410,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
       },
     ])
     setTimeout(() => {
+      if (gen.current !== myGen) return
       setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
       setOptionsVisible(true)
     }, 500)
@@ -296,6 +430,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   }
 
   function handleOption(option: string) {
+    const myGen = ++gen.current
     const newAnswers = [...answers, option]
     const newStep = stepIndex + 1
 
@@ -305,6 +440,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
     if (newStep < STEPS.length) {
       setTimeout(() => {
+        if (gen.current !== myGen) return
         setStepIndex(newStep)
         setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStep].question }])
         setOptionsVisible(true)
@@ -322,8 +458,10 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
       setGroundedReady(false)
 
       setTimeout(() => {
+        if (gen.current !== myGen) return
         pushMia(responseText)
         setTimeout(() => {
+          if (gen.current !== myGen) return
           pushMia(bridgeText)
           setGroundedReady(true)
         }, 900)
@@ -348,10 +486,10 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     if (!canSubmit) return
     setSubmitted(true)
     setPhase("handoff")
-    setActiveTab("student")
   }
 
   function resetFlow() {
+    gen.current++ // cancel any pending setTimeout callbacks from the previous flow
     setPhase("idle")
     setStepIndex(0)
     setAnswers([])
@@ -361,7 +499,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setSubmitted(false)
     setProgramContext(null)
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
-    setActiveTab("student")
   }
 
   // ── Handoff screen ────────────────────────────────────────────────────────
@@ -371,45 +508,18 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     const conversationSummary = buildConversationSummary(answers, program)
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} />
-        <div className="flex border-b border-border shrink-0">
-          {(["student", "enrollment"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2.5 text-[10px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 transition-colors ${
-                activeTab === tab
-                  ? "border-b-2 border-primary text-foreground bg-secondary/30"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              {tab === "student" ? <User size={11} /> : <Clipboard size={11} />}
-              {tab === "student" ? "Confirmation" : "Enrollment Profile"}
-            </button>
-          ))}
-        </div>
+        <PanelHeader onReset={resetFlow} onClose={onClose} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
-          {activeTab === "student" ? (
-            <StudentConfirmation
-              lead={lead}
-              answers={answers}
-              program={program}
-              intent={intent}
-              advisorScript={advisorScript}
-              onReset={resetFlow}
-              onViewEnrollment={() => setActiveTab("enrollment")}
-            />
-          ) : (
-            <EnrollmentView
-              lead={lead}
-              answers={answers}
-              program={program}
-              intent={intent}
-              advisorScript={advisorScript}
-              conversationSummary={conversationSummary}
-            />
-          )}
+          <StudentConfirmation
+            lead={lead}
+            answers={answers}
+            program={program}
+            intent={intent}
+            advisorScript={advisorScript}
+            conversationSummary={conversationSummary}
+            onReset={resetFlow}
+            onClose={onClose}
+          />
         </div>
       </PanelShell>
     )
@@ -420,7 +530,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   if (phase === "capture") {
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} />
+        <PanelHeader onReset={resetFlow} onClose={onClose} />
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
@@ -441,12 +551,33 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             <input
               id="mia-field-phone"
               type="tel"
+              inputMode="numeric"
               value={lead.phone}
-              onChange={(e) => setLead((prev) => ({ ...prev, phone: e.target.value }))}
+              onChange={(e) => {
+                // Strip everything that isn't a digit
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                // Format as (###) ###-####
+                let formatted = ""
+                if (digits.length <= 3) {
+                  formatted = digits.length ? `(${digits}` : ""
+                } else if (digits.length <= 6) {
+                  formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+                } else {
+                  formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+                }
+                setLead((prev) => ({ ...prev, phone: formatted }))
+              }}
               placeholder="(555) 000-0000"
               autoComplete="tel"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className={`w-full bg-input border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
+                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-border focus:border-primary"
+              }`}
             />
+            {phonePartial && (
+              <p className="text-[10px] text-red-400 mt-1">
+                Enter a complete 10-digit phone number.
+              </p>
+            )}
           </Field>
 
           <Field label="Email (optional)">
@@ -505,9 +636,15 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Your answers help the advisor understand your goals before they reach out.
-          </p>
+          {/* Helper text — always visible before submit */}
+          <div className="border border-border/50 bg-secondary/30 px-3 py-2.5 space-y-1">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Your answers help the advisor understand your goals before they reach out.
+            </p>
+            <p className="text-[10px] text-muted-foreground/70">
+              {"We'll only use this to follow up about WWA programs. No spam."}
+            </p>
+          </div>
 
           <button
             type="button"
@@ -526,19 +663,36 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </p>
           )}
 
-          <p className="text-center text-[10px] text-muted-foreground pb-1">
-            {"We'll only use this to follow up about WWA programs. No spam."}
-          </p>
+          <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
+            <button
+              type="button"
+              onClick={() => setPhase("summary")}
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <ChevronLeft size={11} />
+              Edit Answers
+            </button>
+            <button
+              type="button"
+              onClick={resetFlow}
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <RotateCcw size={9} />
+              Start Over
+            </button>
+          </div>
         </div>
       </PanelShell>
     )
   }
 
-  // ── Main flow / idle ──────────────────────────────────────────────────────
+  // ── Main flow / idle ───────────────��──────────────────────────────────────
 
   return (
     <PanelShell compact={compact}>
-      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} />
+      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
 
       {phase !== "idle" && (
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
@@ -570,17 +724,28 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
                     {opt}
                   </button>
                 ))}
-                {stepIndex > 0 && (
+                <div className="flex items-center gap-3 pt-1 mt-1 border-t border-border/50">
+                  {stepIndex > 0 ? (
+                    <button
+                      type="button"
+                      onClick={goBackOneStep}
+                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      <ChevronLeft size={11} />
+                      Back
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={goBackOneStep}
-                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors mt-1 pt-1"
+                    onClick={resetFlow}
+                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
-                    <ChevronLeft size={11} />
-                    Back
+                    <RotateCcw size={9} />
+                    Start Over
                   </button>
-                )}
+                </div>
               </div>
             )}
 
@@ -607,6 +772,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
                 intent={intent}
                 onCapture={() => setPhase("capture")}
                 onBack={goBackToGrounded}
+                onReset={resetFlow}
               />
             )}
           </>
@@ -674,49 +840,25 @@ function FitSummaryCard({
   intent,
   onCapture,
   onBack,
+  onReset,
 }: {
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   onCapture: () => void
   onBack: () => void
+  onReset: () => void
 }) {
   const [goal, experience, timeline, concern] = answers
-  const intentColor =
-    intent === "High"
-      ? "text-green-400"
-      : intent === "Medium"
-      ? "text-yellow-400"
-      : "text-muted-foreground"
-  const intentBg =
-    intent === "High"
-      ? "bg-green-500/10 border-green-500/30"
-      : intent === "Medium"
-      ? "bg-yellow-500/10 border-yellow-500/30"
-      : "bg-secondary border-border"
-
-  const nextStep =
-    intent === "High"
-      ? "Talk to enrollment this week"
-      : intent === "Medium"
-      ? "Request info — follow up in 2–3 weeks"
-      : "Review program options — no rush"
-
   return (
     <div className="space-y-3 pt-1">
       <div className="border border-border bg-secondary">
-        <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+        <div className="px-4 py-2.5 border-b border-border">
           <span
             className="text-xs font-black tracking-widest uppercase text-foreground"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            Fit Summary
-          </span>
-          <span
-            className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 border ${intentBg} ${intentColor}`}
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            {intent} Intent
+            Your Fit Summary
           </span>
         </div>
         <div className="px-4 py-3 space-y-2">
@@ -724,22 +866,14 @@ function FitSummaryCard({
             ["Recommended program", program.name],
             ["Duration", program.duration],
             ["All-in tuition", program.tuition],
-            ["Experience level", experience ?? "—"],
-            ["Your goal", goal ?? "—"],
-            ["Your timeline", timeline ?? "—"],
-            ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
-            ["Intent level", intent],
-            ["Recommended next step", nextStep],
+            ...(experience ? [["Your experience", experience]] as [string, string][] : []),
+            ...(goal ? [["Your goal", goal]] as [string, string][] : []),
+            ...(timeline ? [["Your start timeline", timeline]] as [string, string][] : []),
+            ...(concern ? [["Main question", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-start gap-4 text-xs">
               <span className="text-muted-foreground shrink-0">{label}</span>
-              <span
-                className={`font-semibold text-right ${
-                  label === "Intent level" ? intentColor : "text-foreground"
-                }`}
-              >
-                {value}
-              </span>
+              <span className="font-semibold text-foreground text-right">{value}</span>
             </div>
           ))}
         </div>
@@ -770,6 +904,15 @@ function FitSummaryCard({
           <ChevronLeft size={12} />
           Edit Answers
         </button>
+        <button
+          type="button"
+          onClick={onReset}
+          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          <RotateCcw size={10} />
+          Start Over
+        </button>
         <a
           href="tel:18005551234"
           className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center"
@@ -782,7 +925,7 @@ function FitSummaryCard({
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────��─────���───���─
+// ─── Student Confirmation ─────────────────────────────────────────────────────
 
 function StudentConfirmation({
   lead,
@@ -790,103 +933,129 @@ function StudentConfirmation({
   program,
   intent,
   advisorScript,
+  conversationSummary,
   onReset,
-  onViewEnrollment,
+  onClose,
 }: {
   lead: LeadData
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   advisorScript: string
+  conversationSummary: string
   onReset: () => void
-  onViewEnrollment: () => void
+  onClose?: () => void
 }) {
-  const [, experience, timeline, concern] = answers
-  const intentColor =
-    intent === "High"
-      ? "text-green-400"
-      : intent === "Medium"
-      ? "text-yellow-400"
-      : "text-muted-foreground"
+  const [profileOpen, setProfileOpen] = useState(false)
 
   return (
-    <div className="space-y-4 pb-2">
-      {/* Confirmation header */}
-      <div className="flex items-center gap-3 py-3 border-b border-border">
-        <div className="w-8 h-8 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0">
-          <Check size={15} className="text-green-400" />
+    <div className="space-y-5 pb-4">
+
+      {/* ── Success header ─────────────────────────────────────────── */}
+      <div className="flex items-start gap-3 pt-1">
+        <div className="w-9 h-9 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0 mt-0.5">
+          <Check size={16} className="text-green-400" />
         </div>
         <div>
           <p
-            className="text-sm font-black tracking-widest uppercase text-foreground"
+            className="text-base font-black tracking-widest uppercase text-foreground leading-tight"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            {"You're all set."}
+            {"You're all set!"}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            An enrollment advisor will reach out with your fit summary. They can confirm details, answer questions, and help you decide on the right next step.
+          <p
+            className="text-xs text-muted-foreground mt-1.5 leading-relaxed"
+          >
+            {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
           </p>
         </div>
       </div>
 
-      {/* What Mia sent */}
-      <div>
+      {/* ── What was sent summary ──────────────────────────────────── */}
+      <div className="border border-border bg-secondary/50 px-4 py-3 space-y-2.5">
         <p
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2"
+          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          What Mia sent to enrollment
+          Sent to enrollment
         </p>
-        <div className="border border-border bg-secondary p-3 space-y-2">
-          {[
-            ["Name", lead.name || "—"],
-            ["Phone", lead.phone || "—"],
-            ["Preferred contact", lead.contact],
-            ["Best time to reach", lead.time],
-            ["Recommended program", program.name],
-            ["Experience level", experience ?? "—"],
-            ["Timeline", timeline ?? "—"],
-            ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
-            ["Intent level", { value: intent, className: intentColor }],
-            ["Suggested advisor opener", { value: advisorScript, italic: true }],
-          ].map(([label, value]) => (
-            <div key={label as string} className="flex justify-between items-start gap-4 text-xs">
-              <span className="text-muted-foreground shrink-0 min-w-[90px]">{label as string}</span>
-              {typeof value === "string" ? (
-                <span className="font-semibold text-foreground text-right">{value}</span>
-              ) : (value as { italic?: boolean }).italic ? (
-                <span className="text-muted-foreground italic text-right leading-relaxed">
-                  {(value as { value: string }).value}
-                </span>
-              ) : (
-                <span className={`font-semibold text-right ${(value as { className: string }).className}`}>
-                  {(value as { value: string }).value}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+        {[
+          ["Recommended program", program.name],
+          ["Contact", `${lead.name} · ${lead.phone}`],
+          ["Preferred reach", `${lead.contact} · ${lead.time}`],
+        ].map(([label, value]) => (
+          <div key={label} className="flex justify-between items-start gap-4 text-xs">
+            <span className="text-muted-foreground shrink-0">{label}</span>
+            <span className="font-semibold text-foreground text-right">{value}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Actions */}
-      <div className="space-y-2 pt-1">
+      {/* ── Primary actions ────────────────────────────────────────── */}
+      <div className="space-y-2">
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-2.5 bg-primary text-primary-foreground text-xs font-bold tracking-widest uppercase hover:bg-primary/90 transition-colors"
+          className="w-full py-3 bg-primary text-primary-foreground text-xs font-black tracking-widest uppercase hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
+          <RotateCcw size={12} />
           Start Over
         </button>
+
+        {/* Collapsible enrollment profile disclosure */}
         <button
           type="button"
-          onClick={onViewEnrollment}
-          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+          onClick={() => setProfileOpen((v) => !v)}
+          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          aria-expanded={profileOpen}
         >
+          <Clipboard size={12} />
           View Enrollment Profile
+          {profileOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </button>
+
+        {/* Close panel */}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/60 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            <X size={11} />
+            Close
+          </button>
+        )}
       </div>
+
+      {/* ── Enrollment Profile (hidden by default) ─────────────────── */}
+      {profileOpen && (
+        <div className="border border-border">
+          {/* Label strip */}
+          <div className="px-4 py-2.5 border-b border-border bg-secondary/60 flex items-center gap-2">
+            <Clipboard size={11} className="text-muted-foreground shrink-0" />
+            <p
+              className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              Details the advisor receives
+            </p>
+          </div>
+          <div className="px-1 py-1">
+            <EnrollmentView
+              lead={lead}
+              answers={answers}
+              program={program}
+              intent={intent}
+              advisorScript={advisorScript}
+              conversationSummary={conversationSummary}
+              embedded
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -900,6 +1069,7 @@ function EnrollmentView({
   intent,
   advisorScript,
   conversationSummary,
+  embedded = false,
 }: {
   lead: LeadData
   answers: string[]
@@ -907,6 +1077,7 @@ function EnrollmentView({
   intent: "High" | "Medium" | "Researching"
   advisorScript: string
   conversationSummary: string
+  embedded?: boolean
 }) {
   const [goal, experience, timeline, concern] = answers
   const intentColor =
@@ -930,7 +1101,7 @@ function EnrollmentView({
       : `Add to nurture sequence. Send program overview email. Check back in 2–3 weeks.`
 
   return (
-    <div className="space-y-4 pb-2">
+    <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
       {/* Lead header */}
       <div className="flex items-center justify-between pb-3 border-b border-border">
         <div>
@@ -1057,7 +1228,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
   return (
     <div
       className={`flex flex-col bg-card border border-border overflow-hidden ${
-        compact ? "h-[560px]" : "h-[600px]"
+        compact ? "h-[560px]" : "h-full"
       }`}
     >
       {children}
@@ -1065,7 +1236,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
   )
 }
 
-function PanelHeader({ onReset }: { onReset?: () => void }) {
+function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
   return (
     <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
@@ -1087,7 +1258,7 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
           <div className="text-muted-foreground text-[10px]">Western Welding Academy</div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           <span className="text-[10px] text-muted-foreground">Online</span>
@@ -1096,11 +1267,22 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
           <button
             type="button"
             onClick={onReset}
-            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
             title="Start over"
             aria-label="Start over"
           >
             <RotateCcw size={11} />
+          </button>
+        )}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            title="Close panel"
+            aria-label="Close Mia panel"
+          >
+            <X size={14} />
           </button>
         )}
       </div>

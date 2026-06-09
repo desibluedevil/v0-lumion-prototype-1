@@ -59,7 +59,7 @@ export default function Header() {
           <nav className="hidden lg:flex items-center gap-7">
             {[
               { label: "Programs",     action: () => scrollTo("programs") },
-              { label: "Financial Aid",action: () => scrollTo("financial-aid") },
+              { label: "Financial Aid",action: () => focusMia({ jumpToConcern: true, prefillConcern: "Cost — can I afford it?" }) },
               { label: "Housing",      action: () => scrollTo("mia-section") },
               { label: "About Us",     action: () => scrollTo("mission") },
             ].map((item) => (
@@ -86,7 +86,7 @@ export default function Header() {
             </a>
 
             <button
-              onClick={() => focusMia()}
+              onClick={() => focusMia({ autoStart: true })}
               className="hidden lg:block px-4 py-2 border border-border text-xs font-black tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
