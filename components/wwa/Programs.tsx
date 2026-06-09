@@ -103,7 +103,7 @@ export default function Programs() {
           {programs.map((prog) => (
             <div
               key={prog.level}
-              className="relative flex flex-col bg-white text-black group overflow-hidden"
+              className="relative flex flex-col bg-white text-black group overflow-hidden transition-colors duration-300"
             >
               {/* Tag ribbon */}
               <div
@@ -127,23 +127,23 @@ export default function Programs() {
               <div className="flex flex-col flex-1 p-8">
                 {/* Program name */}
                 <h3
-                  className="text-black font-black uppercase leading-tight mb-6"
+                  className="text-black group-hover:text-white font-black uppercase leading-tight mb-6 transition-colors duration-300"
                   style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1.6rem", letterSpacing: "-0.01em" }}
                 >
                   {prog.name}
                 </h3>
 
                 {/* Stats — Program Length + Payback stacked */}
-                <div className="border-t border-b border-black/10 divide-y divide-black/10 mb-6">
+                <div className="border-t border-b border-black/10 group-hover:border-white/20 divide-y divide-black/10 group-hover:divide-white/20 mb-6 transition-colors duration-300">
                   <div className="flex items-center justify-between py-3">
                     <span
-                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50"
+                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50 group-hover:text-white/50 transition-colors duration-300"
                       style={{ fontFamily: "var(--font-barlow-condensed)" }}
                     >
                       Program Length
                     </span>
                     <span
-                      className="text-black font-black text-lg"
+                      className="text-black group-hover:text-white font-black text-lg transition-colors duration-300"
                       style={{ fontFamily: "var(--font-barlow-condensed)" }}
                     >
                       {prog.duration}
@@ -151,7 +151,7 @@ export default function Programs() {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span
-                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50"
+                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50 group-hover:text-white/50 transition-colors duration-300"
                       style={{ fontFamily: "var(--font-barlow-condensed)" }}
                     >
                       Avg. Time to Payback
@@ -165,13 +165,13 @@ export default function Programs() {
                   </div>
                   <div className="flex items-center justify-between py-3">
                     <span
-                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50"
+                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50 group-hover:text-white/50 transition-colors duration-300"
                       style={{ fontFamily: "var(--font-barlow-condensed)" }}
                     >
                       Tuition
                     </span>
                     <span
-                      className="text-black font-black text-lg"
+                      className="text-black group-hover:text-white font-black text-lg transition-colors duration-300"
                       style={{ fontFamily: "var(--font-barlow-condensed)" }}
                     >
                       {prog.tuition}
@@ -180,7 +180,7 @@ export default function Programs() {
                 </div>
 
                 {/* Description */}
-                <p className="text-black/60 text-sm leading-relaxed mb-8 flex-1">
+                <p className="text-black/60 group-hover:text-white/60 text-sm leading-relaxed mb-8 flex-1 transition-colors duration-300">
                   {prog.description}
                 </p>
 
@@ -195,7 +195,7 @@ export default function Programs() {
                   </button>
                   <button
                     onClick={() => focusMia(prog.name)}
-                    className="w-full py-3 border-2 border-black text-black text-xs font-black tracking-[0.18em] uppercase hover:bg-black hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-3 border-2 border-black group-hover:border-white/40 text-black group-hover:text-white text-xs font-black tracking-[0.18em] uppercase hover:bg-primary hover:!text-primary-foreground hover:!border-primary transition-colors duration-300 flex items-center justify-center gap-2"
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
                     <span aria-hidden="true" className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black">M</span>
