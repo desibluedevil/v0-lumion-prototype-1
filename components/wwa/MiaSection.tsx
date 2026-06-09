@@ -1,73 +1,82 @@
+import Image from "next/image"
 import MiaPanel from "./MiaPanel"
 import { CheckCircle } from "lucide-react"
 
 const bullets = [
-  "Match your experience level to the right program",
-  "Understand if the timeline works for your life",
-  "Get honest answers about financing and cost",
-  "Know what hiring looks like before you commit",
+  "Matches experience level to the right program automatically",
+  "Surfaces financing and housing answers before they bounce",
+  "Routes high-intent leads directly to enrollment — with context",
+  "Gives the advisor a script, not a cold contact form",
 ]
 
 export default function MiaSection() {
   return (
-    <section className="py-24 bg-secondary/20 border-t border-border">
+    <section className="py-24 bg-secondary/10 border-t border-border">
       <div className="max-w-[1440px] mx-auto px-8">
         <div className="grid grid-cols-12 gap-12 items-start">
-          {/* Left — content — 6 cols */}
+
+          {/* Left — 6 cols */}
           <div className="col-span-6 space-y-8 pt-4">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-px w-12 bg-primary" />
+                <div className="h-px w-10 bg-primary" />
                 <span
-                  className="text-primary text-xs font-bold tracking-[0.2em] uppercase"
+                  className="text-primary text-[10px] font-black tracking-[0.2em] uppercase"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
-                  Meet Mia
+                  Why Mia
                 </span>
               </div>
               <h2
-                className="text-foreground leading-tight uppercase tracking-tight text-balance"
+                className="text-foreground uppercase tracking-tight text-balance"
                 style={{
                   fontFamily: "var(--font-barlow-condensed)",
                   fontSize: "clamp(2rem, 3.5vw, 2.8rem)",
                   fontWeight: 900,
+                  lineHeight: 1.05,
                 }}
               >
-                Not Sure If Welding School Is Right For You?
+                Most Visitors Leave<br />Without Applying.
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
-                Most people who visit our site are interested but uncertain. Mia is a guided enrollment decision assistant — not a chatbot. She&apos;ll ask you 4 questions and give you a clear, honest picture of whether WWA makes sense for your situation.
+                They&apos;re not uninterested. They have a question about cost, location, or whether they&apos;re experienced enough — and the current site doesn&apos;t answer it at the moment it needs to be answered.
+              </p>
+              <p className="text-foreground text-base leading-relaxed font-medium">
+                Mia intercepts that hesitation, qualifies the lead, and hands it to enrollment with full context.
               </p>
             </div>
 
             {/* Bullets */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {bullets.map((b) => (
                 <div key={b} className="flex items-start gap-3">
-                  <CheckCircle size={16} className="text-primary mt-0.5 shrink-0" />
+                  <CheckCircle size={15} className="text-primary mt-0.5 shrink-0" />
                   <span className="text-muted-foreground text-sm leading-relaxed">{b}</span>
                 </div>
               ))}
             </div>
 
-            {/* Differentiator callout */}
-            <div className="border-l-2 border-primary pl-5 py-2">
+            {/* Pull quote */}
+            <div className="border-l-2 border-primary pl-5 py-1.5">
               <p className="text-foreground font-semibold text-sm leading-relaxed">
-                This is not a sales tool. It&apos;s designed to help you make a better decision — even if that decision is not enrolling right now.
+                This is not a generic chatbot bolted onto a contact form. It&apos;s a guided qualification flow built for the specific objections a welding school prospect has.
               </p>
             </div>
 
-            {/* Photo placeholder */}
-            <div className="w-full h-48 bg-card border border-border flex items-center justify-center overflow-hidden">
-              <div className="text-center space-y-1">
-                <div className="w-10 h-10 mx-auto bg-muted border border-border flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-muted-foreground" />
-                </div>
+            {/* Facility photo */}
+            <div className="w-full h-52 relative overflow-hidden border border-border">
+              <Image
+                src="/images/wwa-facility.png"
+                alt="Western Welding Academy training facility — Gillette, Wyoming"
+                fill
+                className="object-cover object-center"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/80 to-transparent p-3">
                 <p
                   className="text-muted-foreground text-[10px] tracking-widest uppercase"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
-                  Students in Welding Booths — Gillette Campus
+                  Pipeline Training Facility — Gillette, WY
                 </p>
               </div>
             </div>
@@ -75,20 +84,13 @@ export default function MiaSection() {
 
           {/* Right — Mia panel — 6 cols */}
           <div className="col-span-6 sticky top-24">
-            <div className="mb-3 flex items-center gap-2">
-              <span
-                className="text-xs font-bold tracking-[0.2em] uppercase text-muted-foreground"
-                style={{ fontFamily: "var(--font-barlow-condensed)" }}
-              >
-                Live Preview
-              </span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
+            <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              No account needed. No commitment. Just clarity.
+            <p className="mt-3 text-center text-[11px] text-muted-foreground tracking-wide">
+              No account. No commitment. Just a straight answer.
             </p>
           </div>
+
         </div>
       </div>
     </section>

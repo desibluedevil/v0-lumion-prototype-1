@@ -1,18 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Send, ChevronRight, Phone, MessageSquare, Mail, Check, User, Clipboard } from "lucide-react"
+import { ChevronRight, Phone, MessageSquare, Mail, Check, User, Clipboard, AlertCircle } from "lucide-react"
 
-// ─── Flow definition ────────────────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
-type Step = {
-  id: string
-  label: string
-  question: string
-  options: string[]
-}
-
-const STEPS: Step[] = [
+const STEPS = [
   {
     id: "goal",
     label: "Goal",
@@ -20,9 +13,9 @@ const STEPS: Step[] = [
     options: [
       "Start a higher-paying career",
       "Get into pipeline / travel welding",
-      "Learn a skilled trade with no college",
+      "Learn a skilled trade without college",
       "Upgrade my current welding skills",
-      "Not sure yet",
+      "Not sure yet — just exploring",
     ],
   },
   {
@@ -30,74 +23,80 @@ const STEPS: Step[] = [
     label: "Experience",
     question: "How much welding experience do you have?",
     options: [
-      "None",
-      "Some shop class / hobby experience",
-      "I've welded on the job",
-      "I already weld and want advanced training",
+      "None — complete beginner",
+      "Some shop class or hobby welding",
+      "Welded on the job before",
+      "Experienced welder — want advanced certs",
     ],
   },
   {
     id: "timeline",
     label: "Timeline",
-    question: "When would you want to start if the fit is right?",
+    question: "When would you want to start, if the fit is right?",
     options: [
-      "ASAP",
+      "ASAP — ready now",
       "Next 30–90 days",
       "Later this year",
-      "Just researching",
+      "Just researching right now",
     ],
   },
   {
     id: "concern",
     label: "Concern",
-    question: "What's the biggest thing you're trying to figure out?",
+    question: "What's the biggest thing holding you back?",
     options: [
-      "Can I afford it?",
-      "Can I move to Wyoming?",
-      "Do I need experience?",
-      "Will I get a good job after?",
-      "Which program fits me?",
+      "Cost — can I afford it?",
+      "Location — can I move to Wyoming?",
+      "Experience — do I need prior skills?",
+      "Outcome — will I actually get hired?",
+      "Fit — which program is right for me?",
     ],
   },
 ]
 
-const CONCERN_RESPONSES: Record<string, string> = {
-  "Can I afford it?":
-    "WWA programs range from $17,050 to $35,800. Housing, tools, and materials are included — no hidden costs. Financing options and payment plans are available.",
-  "Can I move to Wyoming?":
-    "Housing is included with every program. You'll move into a fully furnished home near campus. Many students relocate from out of state — we make it easy.",
-  "Do I need experience?":
-    "No prior experience needed. WWA trains students from the ground up. Our Foundational program starts with zero assumptions.",
-  "Will I get a good job after?":
-    "WWA graduates have a 94% hire rate. Pipeline welders earn $80K–$150K+ annually. We connect you with employers before you graduate.",
-  "Which program fits me?":
-    "We offer three paths: Foundational (12 weeks), Advanced Pipe (18 weeks), and Professional Pipe (24 weeks). The right one depends on your experience and goals.",
+const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
+  "Cost — can I afford it?": {
+    headline: "Programs range from $17,050 to $35,800. Everything included.",
+    body: "Housing, tools, and materials are bundled in — no surprise costs. Financing and payment plans are available. Most students break even within 8 months of graduating.",
+  },
+  "Location — can I move to Wyoming?": {
+    headline: "Housing is included. We handle the logistics.",
+    body: "Every student gets a fully furnished home near campus. Most of our students relocate from out of state. We've done this 2,000+ times.",
+  },
+  "Experience — do I need prior skills?": {
+    headline: "Zero experience required for our Foundational program.",
+    body: "WWA trains from the ground up. You don't need to have touched a welder before. Our instructors have seen every level — including none.",
+  },
+  "Outcome — will I actually get hired?": {
+    headline: "94% of WWA graduates get hired. The pipeline industry is short-staffed.",
+    body: "We connect you with employers before you graduate. Pipeline welders earn $80K–$150K+. The demand isn't going away.",
+  },
+  "Fit — which program is right for me?": {
+    headline: "Three paths. One fits your experience and goals.",
+    body: "Foundational (12 wks) for beginners. Professional Pipe (19 wks) for career changers with some experience. Expert Pipe (24 wks) for experienced welders chasing the highest certifications.",
+  },
 }
 
-// ─── Program recommendation logic ───────────────────────────────────────────
-
-function recommendProgram(experience: string): { name: string; duration: string } {
-  if (experience === "I already weld and want advanced training") {
-    return { name: "Professional Pipe Welder", duration: "24 weeks" }
-  }
-  if (experience === "I've welded on the job") {
-    return { name: "Advanced Pipe Welder", duration: "18 weeks" }
-  }
-  return { name: "Foundational Pipe Welder", duration: "12 weeks" }
+function recommendProgram(experience: string): { name: string; duration: string; tuition: string } {
+  if (experience.includes("Experienced")) return { name: "Expert Pipe Welder", duration: "24 weeks", tuition: "$35,800" }
+  if (experience.includes("on the job")) return { name: "Professional Pipe Welder", duration: "19 weeks", tuition: "$27,600" }
+  return { name: "Foundational Pipe Welder", duration: "12 weeks", tuition: "$17,050" }
 }
 
 function intentLevel(timeline: string): "High" | "Medium" | "Researching" {
-  if (timeline === "ASAP" || timeline === "Next 30–90 days") return "High"
-  if (timeline === "Later this year") return "Medium"
+  if (timeline.includes("ASAP") || timeline.includes("30–90")) return "High"
+  if (timeline.includes("Later this year")) return "Medium"
   return "Researching"
 }
 
 function advisorOpener(answers: string[]): string {
-  const [goal, experience, timeline, concern] = answers
-  return `"Hey [Name], I'm reaching out from Western Welding Academy. Mia flagged that you're interested in ${goal?.toLowerCase() ?? "a welding career"}, have ${experience?.toLowerCase() ?? "some"} experience, and your main question was about ${concern?.toLowerCase() ?? "getting started"}. Do you have 10 minutes to talk through your options?"`
+  const [goal, , timeline, concern] = answers
+  const goalShort = goal?.split("—")[0].trim().toLowerCase() ?? "a welding career"
+  const concernShort = concern?.split("—")[0].replace(/^.+?—\s*/, "").toLowerCase() ?? "their main concern"
+  return `"Hey [Name], Mia flagged your fit check — you're looking to ${goalShort}, and your main question was around ${concernShort}. Do you have 10 minutes to walk through your options?"`
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Message = { role: "mia" | "user"; text: string }
 type Phase = "idle" | "flow" | "grounded" | "summary" | "capture" | "handoff"
@@ -112,19 +111,35 @@ interface LeadData {
   time: BestTime
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Funnel state mapping ─────────────────────────────────────────────────────
+
+const FUNNEL = ["Visitor", "Qualified Lead", "Hot Lead", "Enrollment Convo", "Application"]
+
+function funnelIndexFor(phase: Phase, answersCount: number): number {
+  if (phase === "handoff") return 3
+  if (phase === "capture") return 2
+  if (phase === "summary") return 2
+  if (phase === "grounded") return 1
+  if (phase === "flow" && answersCount >= 3) return 1
+  return 0
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MiaPanel({ compact = false }: { compact?: boolean }) {
-  const [started, setStarted] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState("")
-  const [optionsUsed, setOptionsUsed] = useState<Set<number>>(new Set())
+  const [optionsLocked, setOptionsLocked] = useState<Set<number>>(new Set())
   const [phase, setPhase] = useState<Phase>("idle")
   const [lead, setLead] = useState<LeadData>({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
   const [activeTab, setActiveTab] = useState<"student" | "enrollment">("student")
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const [goal, experience, timeline, concern] = answers
+  const program = recommendProgram(experience ?? "")
+  const intent = intentLevel(timeline ?? "")
+  const funnelIndex = funnelIndexFor(phase, answers.length)
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -136,42 +151,29 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     phase === "flow" &&
     messages.length > 0 &&
     messages[messages.length - 1].role === "mia" &&
-    !optionsUsed.has(stepIndex)
+    !optionsLocked.has(stepIndex)
 
-  // ── Derived fit data ───────────────────────────────────────────────────────
-
-  const [goal, experience, timeline, concern] = answers
-  const program = recommendProgram(experience ?? "")
-  const intent = intentLevel(timeline ?? "")
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function pushMia(text: string, delay = 0) {
-    if (delay === 0) {
-      setMessages((prev) => [...prev, { role: "mia", text }])
-    } else {
-      setTimeout(() => setMessages((prev) => [...prev, { role: "mia", text }]), delay)
-    }
+    const push = () => setMessages((prev) => [...prev, { role: "mia", text }])
+    delay > 0 ? setTimeout(push, delay) : push()
   }
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Flow actions ──────────────────────────────────────────────────────────────
 
   function startFlow() {
-    setStarted(true)
     setPhase("flow")
-    setMessages([{
-      role: "mia",
-      text: "I'll ask you 4 quick questions to see if WWA is the right fit. No pressure — honest answers only.",
-    }])
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
-    }, 500)
+    setMessages([
+      { role: "mia", text: "I'll ask 4 questions to see if WWA is a realistic fit for you. Honest answers — no pressure either way." },
+    ])
+    setTimeout(() => pushMia(STEPS[0].question), 500)
   }
 
   function handleOption(option: string) {
     const newAnswers = [...answers, option]
     setAnswers(newAnswers)
-    setOptionsUsed((prev) => new Set(prev).add(stepIndex))
+    setOptionsLocked((prev) => new Set(prev).add(stepIndex))
     setMessages((prev) => [...prev, { role: "user", text: option }])
 
     const next = stepIndex + 1
@@ -180,164 +182,199 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
       setTimeout(() => {
         setMessages((prev) => [...prev, { role: "mia", text: STEPS[next].question }])
         setStepIndex(next)
-      }, 400)
+      }, 350)
     } else {
-      const response =
-        CONCERN_RESPONSES[option] ??
-        "That's a great question. Our admissions team can walk you through the specifics based on your situation."
+      // Concern answered — move to grounded response
+      const resp = CONCERN_RESPONSES[option]
       setPhase("grounded")
-      setTimeout(() => pushMia(response), 400)
-      setTimeout(() => pushMia("Based on what you shared, I can put together your fit summary and connect you with an enrollment advisor."), 900)
+      if (resp) {
+        setTimeout(() => pushMia(`${resp.headline}\n\n${resp.body}`), 350)
+      } else {
+        setTimeout(() => pushMia("That's a fair concern. Our admissions team can give you a straight answer based on your specific situation."), 350)
+      }
+      setTimeout(() => pushMia("Based on your answers, I can show you exactly which program fits, what it costs, and what to expect. Want to see your fit summary?"), 900)
     }
   }
 
   function showFitSummary() {
     setPhase("summary")
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", text: "Show my fit summary" },
-    ])
+    setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
   }
 
-  function handleCapture() {
+  function goToCapture() {
     setPhase("capture")
   }
 
-  function handleSubmitLead() {
+  function submitLead() {
     if (!lead.name || !lead.phone) return
     setPhase("handoff")
+    setActiveTab("student")
   }
 
-  function handleSend() {
-    if (!inputValue.trim()) return
-    const text = inputValue.trim()
-    setInputValue("")
-    setMessages((prev) => [...prev, { role: "user", text }])
-    setTimeout(() => {
-      pushMia(
-        "Good question. For specifics, our admissions team can give you the most accurate answer based on your situation. You can reach them at 1-800-580-4173 or continue the fit check above."
-      )
-    }, 600)
-  }
-
-  // ── Progress bar ──────────────────────────────────────────────────────────
-
-  const PROGRESS_STEPS = [...STEPS.map((s) => s.label), "Fit Summary"]
-  const progressIndex =
-    !started
-      ? -1
-      : phase === "summary" || phase === "capture" || phase === "handoff"
-      ? PROGRESS_STEPS.length - 1
-      : stepIndex
-
-  // ── Funnel strip ─────────────────────────────────────────────────────────
-
-  const FUNNEL = ["Visitor", "Qualified Lead", "Hot Lead", "Enrollment Convo", "Application"]
-  const funnelIndex =
-    phase === "handoff"
-      ? 2
-      : phase === "capture" || phase === "summary"
-      ? 1
-      : phase === "grounded" || (phase === "flow" && answers.length >= 3)
-      ? 1
-      : 0
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER: Handoff screen
-  // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: Handoff
+  // ─────────────────────────────────────────────────────────────────────────────
 
   if (phase === "handoff") {
     return (
-      <HandoffScreen
-        lead={lead}
-        answers={answers}
-        program={program}
-        intent={intent}
-        funnel={FUNNEL}
-        funnelIndex={funnelIndex}
-        advisorScript={advisorOpener(answers)}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        compact={compact}
-      />
+      <PanelShell compact={compact}>
+        <PanelHeader />
+        <FunnelStrip funnelIndex={funnelIndex} />
+        <div className="flex border-b border-border shrink-0">
+          {(["student", "enrollment"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2.5 text-[10px] font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 transition-colors ${
+                activeTab === tab ? "border-b-2 border-primary text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              {tab === "student" ? <User size={11} /> : <Clipboard size={11} />}
+              {tab === "student" ? "Student Confirmation" : "Enrollment View"}
+            </button>
+          ))}
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {activeTab === "student" ? (
+            <StudentConfirmation lead={lead} answers={answers} program={program} intent={intent} />
+          ) : (
+            <EnrollmentView lead={lead} answers={answers} program={program} intent={intent} advisorScript={advisorOpener(answers)} />
+          )}
+        </div>
+      </PanelShell>
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER: Lead capture screen
-  // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: Lead Capture
+  // ─────────────────────────────────────────────────────────────────────────────
 
   if (phase === "capture") {
     return (
-      <LeadCaptureScreen
-        lead={lead}
-        setLead={setLead}
-        onSubmit={handleSubmitLead}
-        funnel={FUNNEL}
-        funnelIndex={funnelIndex}
-        compact={compact}
-      />
+      <PanelShell compact={compact}>
+        <PanelHeader />
+        <FunnelStrip funnelIndex={funnelIndex} />
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <MiaBubble text="Last step. I'll route your fit summary to the right enrollment advisor — they'll reach out within one business day." />
+          <div className="space-y-3">
+            <Field label="First name" required>
+              <input
+                type="text"
+                value={lead.name}
+                onChange={(e) => setLead({ ...lead, name: e.target.value })}
+                placeholder="Your name"
+                className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              />
+            </Field>
+            <Field label="Phone" required>
+              <input
+                type="tel"
+                value={lead.phone}
+                onChange={(e) => setLead({ ...lead, phone: e.target.value })}
+                placeholder="(555) 000-0000"
+                className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              />
+            </Field>
+            <Field label="Email">
+              <input
+                type="email"
+                value={lead.email}
+                onChange={(e) => setLead({ ...lead, email: e.target.value })}
+                placeholder="you@email.com"
+                className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              />
+            </Field>
+            <Field label="How should we reach you?">
+              <div className="flex gap-2">
+                {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
+                  const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => setLead({ ...lead, contact: opt })}
+                      className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${
+                        lead.contact === opt
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                      }`}
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      <Icon size={12} /> {opt}
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+            <Field label="Best time to reach you">
+              <div className="flex gap-2">
+                {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setLead({ ...lead, time: opt })}
+                    className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase transition-colors ${
+                      lead.time === opt
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                    }`}
+                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </div>
+          <button
+            onClick={submitLead}
+            disabled={!lead.name || !lead.phone}
+            className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Send to Enrollment Team
+            <ChevronRight size={15} />
+          </button>
+        </div>
+      </PanelShell>
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER: Main chat panel
-  // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER: Main chat
+  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={`flex flex-col bg-card border border-border ${compact ? "h-[540px]" : "h-[600px]"} overflow-hidden`}>
-      {/* Header */}
+    <PanelShell compact={compact}>
       <PanelHeader />
 
-      {/* Progress bar */}
-      {started && (
-        <ProgressBar steps={PROGRESS_STEPS} progressIndex={progressIndex} />
-      )}
+      {/* Step progress — only visible during flow */}
+      {phase !== "idle" && <StepProgress stepIndex={stepIndex} phase={phase} />}
 
       {/* Funnel strip */}
-      {started && (
-        <FunnelStrip funnel={FUNNEL} funnelIndex={funnelIndex} />
-      )}
+      {phase !== "idle" && <FunnelStrip funnelIndex={funnelIndex} />}
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+
         {phase === "idle" ? (
-          <div className="flex flex-col h-full justify-between">
-            <div className="space-y-3">
-              <MiaBubble text="I can help you figure out if welding school makes sense for your goals, budget, timeline, and experience level." />
-              <MiaBubble text="This isn't a sales pitch. It's a 4-question fit check — honest answers, no pressure." />
-            </div>
-            <button
-              onClick={startFlow}
-              className="w-full mt-4 py-3 bg-primary text-primary-foreground font-bold tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              Start 2-Minute Fit Check
-              <ChevronRight size={16} />
-            </button>
-          </div>
+          <IdleState onStart={startFlow} />
         ) : (
           <>
             {messages.map((msg, i) =>
               msg.role === "mia" ? (
                 <MiaBubble key={i} text={msg.text} />
               ) : (
-                <div key={i} className="flex justify-end">
-                  <div className="px-4 py-3 text-sm leading-relaxed max-w-[85%] bg-primary text-primary-foreground">
-                    {msg.text}
-                  </div>
-                </div>
+                <UserBubble key={i} text={msg.text} />
               )
             )}
 
             {/* Option chips */}
             {showOptions && (
-              <div className="pl-10 space-y-2 pt-1">
+              <div className="ml-10 space-y-1.5 pt-1">
                 {STEPS[stepIndex].options.map((opt) => (
                   <button
                     key={opt}
                     onClick={() => handleOption(opt)}
-                    className="w-full text-left px-4 py-2.5 border border-border text-sm text-muted-foreground hover:border-primary hover:text-foreground transition-colors"
+                    className="w-full text-left px-4 py-2.5 border border-border text-sm text-muted-foreground hover:border-primary hover:text-foreground hover:bg-secondary/40 transition-colors"
                   >
                     {opt}
                   </button>
@@ -345,53 +382,54 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               </div>
             )}
 
-            {/* Grounded → show fit summary CTA */}
+            {/* Grounded → CTA */}
             {phase === "grounded" && (
-              <div className="pl-10 pt-1">
+              <div className="ml-10 pt-1">
                 <button
                   onClick={showFitSummary}
-                  className="w-full py-3 bg-primary text-primary-foreground font-bold tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   See My Fit Summary
-                  <ChevronRight size={16} />
+                  <ChevronRight size={15} />
                 </button>
               </div>
             )}
 
-            {/* Fit Summary card */}
+            {/* Fit Summary */}
             {phase === "summary" && (
-              <FitSummaryCard
-                answers={answers}
-                program={program}
-                intent={intent}
-                onCapture={handleCapture}
-              />
+              <FitSummaryCard answers={answers} program={program} intent={intent} onCapture={goToCapture} />
             )}
           </>
         )}
       </div>
+    </PanelShell>
+  )
+}
 
-      {/* Freeform input */}
-      {started && phase !== "summary" && (
-        <div className="px-4 py-3 border-t border-border shrink-0 flex gap-2">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask Mia anything about WWA..."
-            className="flex-1 bg-input border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-          />
-          <button
-            onClick={handleSend}
-            aria-label="Send message"
-            className="px-3 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            <Send size={14} />
-          </button>
+// ─── Idle State ───────────────────────────────────────────────────────────────
+
+function IdleState({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="flex flex-col h-full justify-between py-1">
+      <div className="space-y-3">
+        <MiaBubble text="Most people who visit WWA's site are interested but unsure. I'm here to help you figure out if this is actually a fit — not to pitch you." />
+        <MiaBubble text="4 questions. 2 minutes. Honest answer at the end." />
+        <div className="ml-10 flex items-start gap-2 bg-secondary/50 border border-border px-3 py-2.5">
+          <AlertCircle size={13} className="text-primary mt-0.5 shrink-0" />
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            If WWA isn&apos;t the right fit, I&apos;ll tell you that too. No pressure, no spam.
+          </p>
         </div>
-      )}
+      </div>
+      <button
+        onClick={onStart}
+        className="w-full mt-5 py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+      >
+        Start Fit Check — 2 Min
+        <ChevronRight size={15} />
+      </button>
     </div>
   )
 }
@@ -405,50 +443,56 @@ function FitSummaryCard({
   onCapture,
 }: {
   answers: string[]
-  program: { name: string; duration: string }
+  program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   onCapture: () => void
 }) {
-  const [goal, experience, timeline, concern] = answers
-  const secondaryConcern = concern === "Can I afford it?" ? "Housing / relocation" : "Financing"
-
-  const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+  const [, , timeline, concern] = answers
+  const intentColor = intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+  const intentBg = intent === "High" ? "bg-green-500/10 border-green-500/30" : intent === "Medium" ? "bg-yellow-500/10 border-yellow-500/30" : "bg-border/30 border-border"
 
   return (
-    <div className="pl-2 pt-2 space-y-3">
-      <div className="border border-border bg-secondary p-4 space-y-3">
-        <p className="text-sm text-foreground leading-relaxed">
-          WWA could be a strong fit if you want hands-on pipe welding training, are open to relocating to Wyoming, and want a career path with strong earning potential.
-        </p>
-        <div className="border-t border-border pt-3 space-y-2">
+    <div className="ml-2 space-y-3 pt-1">
+      {/* Summary card */}
+      <div className="border border-border bg-secondary">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+          <span
+            className="text-xs font-black tracking-widest uppercase text-foreground"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Your Fit Summary
+          </span>
+          <span className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 border ${intentBg} ${intentColor}`} style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+            {intent} Intent
+          </span>
+        </div>
+        <div className="px-4 py-3 space-y-2">
           {[
-            ["Program fit", program.name],
-            ["Experience level", experience ?? "—"],
+            ["Program match", program.name],
+            ["Duration", program.duration],
+            ["Tuition (all-in)", program.tuition],
             ["Timeline", timeline ?? "—"],
-            ["Main concern", concern ?? "—"],
-            ["Secondary concern", secondaryConcern],
-            ["Intent level", intent],
-            ["Recommended next step", "Talk to enrollment today"],
+            ["Main concern", concern?.split("—")[0].trim() ?? "—"],
+            ["Recommended step", "Talk to enrollment today"],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-start gap-4 text-xs">
               <span className="text-muted-foreground shrink-0">{label}</span>
-              <span className={`font-semibold text-right ${label === "Intent level" ? intentColor : "text-foreground"}`}>
-                {value}
-              </span>
+              <span className="font-semibold text-foreground text-right">{value}</span>
             </div>
           ))}
         </div>
       </div>
-      <MiaBubble text="Want me to have an enrollment advisor text or call you with details on financing, housing, and next start dates?" />
-      <div className="pl-10 space-y-2">
+
+      <MiaBubble text="Want me to send this to an enrollment advisor? They can answer specifics on financing, housing, and next start dates — usually within one business day." />
+
+      <div className="ml-10 space-y-2">
         <button
           onClick={onCapture}
-          className="w-full py-3 bg-primary text-primary-foreground font-bold tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          Yes, Send Me Info
-          <ChevronRight size={16} />
+          Yes — Connect Me With Enrollment
+          <ChevronRight size={15} />
         </button>
         <button
           className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
@@ -461,389 +505,239 @@ function FitSummaryCard({
   )
 }
 
-// ─── Lead Capture Screen ──────────────────────────────────────────────────────
+// ─── Student Confirmation ─────────────────────────────────────────────────────
 
-function LeadCaptureScreen({
-  lead,
-  setLead,
-  onSubmit,
-  funnel,
-  funnelIndex,
-  compact,
-}: {
-  lead: LeadData
-  setLead: (l: LeadData) => void
-  onSubmit: () => void
-  funnel: string[]
-  funnelIndex: number
-  compact: boolean
-}) {
-  const contactIcons: Record<ContactPref, React.ReactNode> = {
-    Text: <MessageSquare size={13} />,
-    Call: <Phone size={13} />,
-    Email: <Mail size={13} />,
-  }
-
-  return (
-    <div className={`flex flex-col bg-card border border-border ${compact ? "h-[540px]" : "h-[600px]"} overflow-hidden`}>
-      <PanelHeader />
-      <FunnelStrip funnel={funnel} funnelIndex={funnelIndex} />
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-        <MiaBubble text="Just a few details and I'll get the right person to reach out — no spam, no sales pressure." />
-
-        <div className="space-y-3">
-          {/* Name */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-              Name
-            </label>
-            <input
-              type="text"
-              value={lead.name}
-              onChange={(e) => setLead({ ...lead, name: e.target.value })}
-              placeholder="Your name"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-            />
-          </div>
-
-          {/* Phone */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-              Phone
-            </label>
-            <input
-              type="tel"
-              value={lead.phone}
-              onChange={(e) => setLead({ ...lead, phone: e.target.value })}
-              placeholder="(555) 000-0000"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-            />
-          </div>
-
-          {/* Email */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-              Email
-            </label>
-            <input
-              type="email"
-              value={lead.email}
-              onChange={(e) => setLead({ ...lead, email: e.target.value })}
-              placeholder="you@email.com"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-            />
-          </div>
-
-          {/* Preferred contact */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-              Preferred contact
-            </label>
-            <div className="flex gap-2">
-              {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setLead({ ...lead, contact: opt })}
-                  className={`flex-1 py-2.5 border text-xs font-bold tracking-widest uppercase flex items-center justify-center gap-1.5 transition-colors ${
-                    lead.contact === opt
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                  }`}
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  {contactIcons[opt]}
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Best time */}
-          <div className="space-y-1">
-            <label className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-              Best time to reach you
-            </label>
-            <div className="flex gap-2">
-              {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => setLead({ ...lead, time: opt })}
-                  className={`flex-1 py-2.5 border text-xs font-bold tracking-widest uppercase transition-colors ${
-                    lead.time === opt
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-                  }`}
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={onSubmit}
-          disabled={!lead.name || !lead.phone}
-          className="w-full py-3 bg-primary text-primary-foreground font-bold tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Send My Fit Summary to Enrollment
-          <ChevronRight size={16} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Handoff Screen ───────────────────────────────────────────────────────────
-
-function HandoffScreen({
+function StudentConfirmation({
   lead,
   answers,
   program,
   intent,
-  funnel,
-  funnelIndex,
+}: {
+  lead: LeadData
+  answers: string[]
+  program: { name: string }
+  intent: "High" | "Medium" | "Researching"
+}) {
+  const [, , timeline] = answers
+  const intentColor = intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+
+  return (
+    <>
+      <div className="flex items-center gap-3 py-3 border-b border-border">
+        <div className="w-8 h-8 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0">
+          <Check size={15} className="text-green-400" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-foreground">{"You're all set."}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">An advisor will reach out via {lead.contact.toLowerCase()} — {lead.time.toLowerCase()}.</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+          What we sent to enrollment
+        </p>
+        <div className="border border-border bg-secondary p-3 space-y-2">
+          {[
+            ["Name", lead.name || "—"],
+            ["Intent", intent],
+            ["Timeline", timeline ?? "—"],
+            ["Program interest", program.name],
+            ["Main concern", answers[3]?.split("—")[0].trim() ?? "—"],
+            ["Contact", `${lead.contact} · ${lead.time}`],
+          ].map(([label, value]) => (
+            <div key={label} className="flex justify-between items-start gap-4 text-xs">
+              <span className="text-muted-foreground shrink-0">{label}</span>
+              <span className={`font-semibold text-right ${label === "Intent" ? intentColor : "text-foreground"}`}>{value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="border border-border p-3 space-y-1">
+        <p className="text-xs text-muted-foreground">Questions before they reach out?</p>
+        <p className="text-sm font-bold text-foreground">1-800-580-4173</p>
+        <p className="text-xs text-muted-foreground">admissions@westernweldingacademy.com</p>
+      </div>
+    </>
+  )
+}
+
+// ─── Enrollment View ──────────────────────────────────────────────────────────
+
+function EnrollmentView({
+  lead,
+  answers,
+  program,
+  intent,
   advisorScript,
-  activeTab,
-  setActiveTab,
-  compact,
 }: {
   lead: LeadData
   answers: string[]
   program: { name: string; duration: string }
   intent: "High" | "Medium" | "Researching"
-  funnel: string[]
-  funnelIndex: number
   advisorScript: string
-  activeTab: "student" | "enrollment"
-  setActiveTab: (t: "student" | "enrollment") => void
-  compact: boolean
 }) {
-  const [goal, , timeline, concern] = answers
-  const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+  const [goal, , timeline] = answers
+  const intentColor = intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+  const intentBg = intent === "High" ? "bg-green-500/10 border-green-500/30" : intent === "Medium" ? "bg-yellow-500/10 border-yellow-500/30" : "bg-secondary border-border"
 
   return (
-    <div className={`flex flex-col bg-card border border-border ${compact ? "h-[540px]" : "h-[600px]"} overflow-hidden`}>
-      <PanelHeader />
-      <FunnelStrip funnel={funnel} funnelIndex={funnelIndex} />
+    <>
+      {/* Lead header */}
+      <div className="flex items-center justify-between pb-3 border-b border-border">
+        <div>
+          <p className="text-sm font-bold text-foreground">{lead.name || "Anonymous Lead"}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Mia-qualified · {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+        </div>
+        <span
+          className={`text-[10px] font-black tracking-widest uppercase px-2.5 py-1 border ${intentBg} ${intentColor}`}
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          {intent} Intent
+        </span>
+      </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-border shrink-0">
-        {(["student", "enrollment"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3 text-xs font-bold tracking-widest uppercase flex items-center justify-center gap-2 transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-primary text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            {tab === "student" ? <User size={12} /> : <Clipboard size={12} />}
-            {tab === "student" ? "Confirmation" : "Enrollment View"}
-          </button>
+      {/* Why Mia routed */}
+      <InfoSection title="Why Mia Routed This Lead">
+        <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+          <p>Goal: <span className="text-foreground">{goal ?? "—"}</span></p>
+          <p>Intent: <span className={`font-semibold ${intentColor}`}>{intent}</span> — {intent === "High" ? "ready ASAP or within 30–90 days" : intent === "Medium" ? "later this year" : "still researching"}</p>
+          <p>Concern is addressable: <span className="text-foreground">{answers[3]?.split("—")[0].trim() ?? "—"}</span></p>
+          <p>Program fit clear: <span className="text-foreground font-semibold">{program.name}</span></p>
+        </div>
+      </InfoSection>
+
+      {/* Student snapshot */}
+      <InfoSection title="Student Snapshot">
+        {[
+          ["Phone", lead.phone || "—"],
+          ["Email", lead.email || "—"],
+          ["Preferred contact", `${lead.contact} · ${lead.time}`],
+          ["Timeline", timeline ?? "—"],
+          ["Program", program.name],
+          ["Duration", program.duration],
+        ].map(([l, v]) => (
+          <div key={l} className="flex justify-between items-start gap-4 text-xs">
+            <span className="text-muted-foreground shrink-0">{l}</span>
+            <span className="font-semibold text-foreground text-right">{v}</span>
+          </div>
         ))}
+      </InfoSection>
+
+      {/* Opener */}
+      <InfoSection title="Suggested Opener">
+        <p className="text-xs text-foreground italic leading-relaxed">{advisorScript}</p>
+      </InfoSection>
+
+      {/* Advisor actions */}
+      <div className="space-y-2 pb-2">
+        <p
+          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Advisor Actions
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { Icon: MessageSquare, label: "Text Lead" },
+            { Icon: Phone, label: "Call Lead" },
+            { Icon: Mail, label: "Nurture" },
+          ].map(({ Icon, label }) => (
+            <button
+              key={label}
+              className="py-2.5 border border-border text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <Icon size={13} />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-        {activeTab === "student" ? (
-          <>
-            {/* Confirmation */}
-            <div className="flex items-center gap-3 py-3 border-b border-border">
-              <div className="w-8 h-8 bg-green-500/20 border border-green-500/50 flex items-center justify-center shrink-0">
-                <Check size={16} className="text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">{"You're all set."}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">An enrollment advisor will reach out with your fit summary.</p>
-              </div>
-            </div>
-
-            {/* What we're sending */}
-            <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-3" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-                What we&apos;re sending to enrollment
-              </p>
-              <div className="border border-border bg-secondary p-4 space-y-2">
-                {[
-                  ["Lead name", lead.name || "—"],
-                  ["Intent", intent],
-                  ["Timeline", timeline ?? "—"],
-                  ["Program interest", program.name],
-                  ["Main concern", answers[3] ?? "—"],
-                  ["Preferred contact", `${lead.contact} · ${lead.time}`],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex justify-between items-start gap-4 text-xs">
-                    <span className="text-muted-foreground shrink-0">{label}</span>
-                    <span className={`font-semibold text-right ${label === "Intent" ? intentColor : "text-foreground"}`}>
-                      {value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact info */}
-            <div className="border border-border p-4 space-y-1 text-xs text-muted-foreground">
-              <p>Questions before they reach out?</p>
-              <p className="text-foreground font-semibold">1-800-580-4173</p>
-              <p className="text-foreground">admissions@westernweldingacademy.com</p>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Enrollment team view */}
-            <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-primary mb-1" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-                Enrollment Lead Profile
-              </p>
-              <p className="text-xs text-muted-foreground">Mia-qualified · {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-            </div>
-
-            {/* Student snapshot */}
-            <Section title="Student Snapshot">
-              {[
-                ["Name", lead.name || "—"],
-                ["Phone", lead.phone || "—"],
-                ["Email", lead.email || "—"],
-                ["Goal", goal ?? "—"],
-                ["Experience", answers[1] ?? "—"],
-                ["Timeline", timeline ?? "—"],
-                ["Main concern", answers[3] ?? "—"],
-                ["Contact pref", `${lead.contact} · ${lead.time}`],
-              ].map(([l, v]) => <Row key={l} label={l} value={v} />)}
-            </Section>
-
-            {/* Why Mia routed this lead */}
-            <Section title="Why Mia Routed This Lead">
-              <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
-                <p>Intent level: <span className={`font-semibold ${intentColor}`}>{intent}</span></p>
-                <p>Timeline indicates urgency — ready within 30–90 days or sooner.</p>
-                <p>Concern is solvable — {answers[3]?.toLowerCase() ?? "financing / housing"} can be addressed by admissions.</p>
-                <p>Program fit is clear: <span className="text-foreground font-semibold">{program.name}</span>.</p>
-                <p>Student expressed willingness to be contacted.</p>
-              </div>
-            </Section>
-
-            {/* Conversation summary */}
-            <Section title="Conversation Summary">
-              <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
-                {answers.map((ans, i) => (
-                  <p key={i}><span className="text-foreground">{STEPS[i]?.label}:</span> {ans}</p>
-                ))}
-              </div>
-            </Section>
-
-            {/* Recommended next best action */}
-            <Section title="Recommended Next Action">
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Call or text within 24 hours. Use the opener below. Address {answers[3]?.toLowerCase() ?? "their main concern"} first, then walk through start dates and program options.
-              </p>
-              <div className="mt-3 border border-border bg-background p-3">
-                <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-2" style={{ fontFamily: "var(--font-barlow-condensed)" }}>Suggested Opener</p>
-                <p className="text-xs text-foreground italic leading-relaxed">{advisorScript}</p>
-              </div>
-            </Section>
-
-            {/* Advisor CTAs */}
-            <div className="space-y-2 pb-2">
-              <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-                Advisor Actions
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { icon: <MessageSquare size={13} />, label: "Text Student" },
-                  { icon: <Phone size={13} />, label: "Call Student" },
-                  { icon: <Mail size={13} />, label: "Mark Nurture" },
-                ].map(({ icon, label }) => (
-                  <button
-                    key={label}
-                    className="py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    {icon}
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+    </>
   )
 }
 
-// ─── Shared sub-components ───────────────────────────────────────────────────
+// ─── Shared sub-components ────────────────────────────────────────────────────
+
+function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`flex flex-col bg-card border border-border ${compact ? "h-[540px]" : "h-[600px]"} overflow-hidden`}>
+      {children}
+    </div>
+  )
+}
 
 function PanelHeader() {
   return (
-    <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground text-xs font-bold" style={{ fontFamily: "var(--font-barlow-condensed)" }}>MIA</span>
+    <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0 bg-card">
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 bg-primary flex items-center justify-center shrink-0">
+          <span className="text-primary-foreground text-[9px] font-black tracking-wider" style={{ fontFamily: "var(--font-barlow-condensed)" }}>MIA</span>
         </div>
-        <div>
-          <div className="text-foreground font-bold text-sm tracking-widest uppercase leading-none" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-            Ask Mia
+        <div className="leading-tight">
+          <div className="text-foreground font-black text-xs tracking-widest uppercase" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+            Mia — Enrollment Assistant
           </div>
-          <div className="text-muted-foreground text-xs mt-0.5">Enrollment Decision Assistant</div>
+          <div className="text-muted-foreground text-[10px]">Western Welding Academy</div>
         </div>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-        <span className="text-xs text-muted-foreground">Online</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+        <span className="text-[10px] text-muted-foreground">Online now</span>
       </div>
     </div>
   )
 }
 
-function ProgressBar({ steps, progressIndex }: { steps: string[]; progressIndex: number }) {
+function StepProgress({ stepIndex, phase }: { stepIndex: number; phase: Phase }) {
+  const done = phase === "grounded" || phase === "summary"
   return (
-    <div className="px-5 py-3 border-b border-border shrink-0">
-      <div className="flex items-center gap-1">
-        {steps.map((label, i) => {
-          const done = i < progressIndex
-          const active = i === progressIndex
-          return (
-            <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
-              <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
-                <div className={`h-1 w-full transition-colors ${done ? "bg-primary" : active ? "bg-primary/50" : "bg-border"}`} />
-                <span
-                  className={`text-[9px] font-bold tracking-widest uppercase truncate ${done || active ? "text-primary" : "text-muted-foreground/50"}`}
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  {label}
-                </span>
-              </div>
+    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-1">
+      {STEPS.map((s, i) => {
+        const isDone = done || i < stepIndex
+        const isActive = !done && i === stepIndex
+        return (
+          <div key={s.id} className="flex items-center gap-1 flex-1 min-w-0">
+            <div className="w-full flex flex-col gap-0.5">
+              <div className={`h-0.5 transition-colors ${isDone ? "bg-primary" : isActive ? "bg-primary/50" : "bg-border"}`} />
+              <span
+                className={`text-[8px] font-bold tracking-widest uppercase truncate ${isDone || isActive ? "text-primary" : "text-muted-foreground/40"}`}
+                style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              >
+                {s.label}
+              </span>
             </div>
-          )
-        })}
-      </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-function FunnelStrip({ funnel, funnelIndex }: { funnel: string[]; funnelIndex: number }) {
+function FunnelStrip({ funnelIndex }: { funnelIndex: number }) {
   return (
-    <div className="px-5 py-2 border-b border-border shrink-0 flex items-center gap-1 overflow-hidden">
-      {funnel.map((label, i) => (
-        <div key={label} className="flex items-center gap-1 shrink-0">
+    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-0.5 overflow-hidden bg-background/30">
+      <span className="text-[8px] font-bold tracking-widest uppercase text-muted-foreground/40 mr-1.5 shrink-0" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+        Stage:
+      </span>
+      {FUNNEL.map((label, i) => (
+        <div key={label} className="flex items-center gap-0.5 shrink-0">
           <span
-            className={`text-[9px] font-bold tracking-widest uppercase whitespace-nowrap ${
-              i === funnelIndex ? "text-primary" : i < funnelIndex ? "text-primary/50" : "text-muted-foreground/30"
+            className={`text-[9px] font-bold tracking-wide uppercase whitespace-nowrap transition-colors ${
+              i === funnelIndex
+                ? "text-primary"
+                : i < funnelIndex
+                ? "text-primary/40"
+                : "text-muted-foreground/25"
             }`}
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             {label}
           </span>
-          {i < funnel.length - 1 && (
-            <ChevronRight size={8} className={i < funnelIndex ? "text-primary/40" : "text-muted-foreground/20"} />
+          {i < FUNNEL.length - 1 && (
+            <ChevronRight size={7} className={i < funnelIndex ? "text-primary/30" : "text-muted-foreground/15"} />
           )}
         </div>
       ))}
@@ -853,35 +747,48 @@ function FunnelStrip({ funnel, funnelIndex }: { funnel: string[]; funnelIndex: n
 
 function MiaBubble({ text }: { text: string }) {
   return (
-    <div className="flex gap-3">
-      <div className="w-7 h-7 bg-primary shrink-0 flex items-center justify-center mt-0.5">
-        <span className="text-primary-foreground text-[10px] font-bold" style={{ fontFamily: "var(--font-barlow-condensed)" }}>MIA</span>
+    <div className="flex gap-2.5">
+      <div className="w-6 h-6 bg-primary shrink-0 flex items-center justify-center mt-0.5">
+        <span className="text-primary-foreground text-[8px] font-black" style={{ fontFamily: "var(--font-barlow-condensed)" }}>M</span>
       </div>
-      <div className="bg-secondary px-4 py-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap max-w-[85%]">
+      <div className="bg-secondary px-3.5 py-2.5 text-sm text-foreground leading-relaxed whitespace-pre-wrap max-w-[88%]">
         {text}
       </div>
     </div>
   )
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function UserBubble({ text }: { text: string }) {
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-        {title}
-      </p>
-      <div className="border border-border bg-secondary p-3 space-y-1.5">
-        {children}
+    <div className="flex justify-end">
+      <div className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] bg-primary text-primary-foreground">
+        {text}
       </div>
     </div>
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between items-start gap-4 text-xs">
-      <span className="text-muted-foreground shrink-0">{label}</span>
-      <span className="font-semibold text-foreground text-right">{value}</span>
+    <div className="space-y-1">
+      <label className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+        {label}
+        {required && <span className="text-primary">*</span>}
+      </label>
+      {children}
+    </div>
+  )
+}
+
+function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
+        {title}
+      </p>
+      <div className="border border-border bg-secondary p-3 space-y-1.5">
+        {children}
+      </div>
     </div>
   )
 }

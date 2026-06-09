@@ -4,7 +4,7 @@ import { Phone, ChevronDown } from "lucide-react"
 
 export default function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
       <div className="max-w-[1440px] mx-auto px-8 h-16 flex items-center justify-between gap-8">
         {/* Logo */}
         <div className="flex items-center gap-3 shrink-0">
