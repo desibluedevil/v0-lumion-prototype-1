@@ -65,7 +65,7 @@ export default function Mission() {
       </div>
 
       {/* Divider */}
-      <div className="max-w-[1440px] mx-auto px-8">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-8">
         <div className="h-px bg-border" />
       </div>
 
