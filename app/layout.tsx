@@ -1,35 +1,30 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Barlow_Condensed, Barlow, Geist_Mono } from 'next/font/google'
 import './globals.css'
 
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
+const barlowCondensed = Barlow_Condensed({
+  variable: '--font-barlow-condensed',
+  subsets: ['latin'],
+  weight: ['400', '600', '700', '800', '900'],
+})
+
+const barlow = Barlow({
+  variable: '--font-barlow',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
+
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 })
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'Western Welding Academy — Only the Best Welders Train Here',
+  description:
+    'Trade school for pipeline welders. 2,000+ graduates. 94% job placement. Programs from 12–24 weeks. See if WWA is a fit with Mia, our enrollment assistant.',
   generator: 'v0.app',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
 }
 
 export default function RootLayout({
@@ -38,7 +33,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      className={`${barlow.variable} ${barlowCondensed.variable} ${geistMono.variable} bg-background`}
+    >
       <body className="font-sans antialiased">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
