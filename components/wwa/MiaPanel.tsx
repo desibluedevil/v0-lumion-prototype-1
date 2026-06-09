@@ -7,6 +7,7 @@ import {
   Mail,
   Check,
   ChevronRight,
+  ChevronLeft,
   User,
   Clipboard,
   AlertCircle,
@@ -118,8 +119,21 @@ function buildAdvisorOpener(answers: string[], leadName: string): string {
     : timeline?.includes("Later this year")
     ? "targeting later this year"
     : "still in the research phase"
-  const concernShort = concern?.replace(/—.*$/, "").toLowerCase().trim() ?? "their situation"
-  return `"${name} is ${timeShort}, has ${expShort}, and is mainly concerned about ${concernShort}. Start with how we address that concern directly, then walk through the program fit and next cohort dates."`
+  const concernShort = concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "their situation"
+  return `"${name} is ${timeShort}, has ${expShort}, and is mainly concerned about ${concernShort}. Lead with how WWA addresses that concern directly, then walk through program fit and next cohort dates."`
+}
+
+function buildConversationSummary(answers: string[], program: { name: string }): string {
+  const [goal, experience, timeline, concern] = answers
+  const parts = [
+    goal ? `Student goal: ${goal}.` : null,
+    experience ? `Experience level: ${experience}.` : null,
+    timeline ? `Start timeline: ${timeline}.` : null,
+    concern ? `Main concern raised: ${concern}.` : null,
+    `Mia addressed the concern with WWA-specific data and recommended ${program.name}.`,
+    "Student requested enrollment contact after reviewing fit summary.",
+  ]
+  return parts.filter(Boolean).join(" ")
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -154,22 +168,26 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   const [activeTab, setActiveTab] = useState<"student" | "enrollment">("student")
   const [optionsVisible, setOptionsVisible] = useState(false)
   const [groundedReady, setGroundedReady] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [goal, experience, timeline, concern] = answers
+  const [, experience, timeline, concern] = answers
   const program = recommendProgram(experience ?? "")
   const intent = intentLevel(timeline ?? "")
 
-  // Derive submit enabled: name and phone required; contact and time have defaults
-  const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0
+  // Required: name + phone. contact and time have pre-selected defaults so always satisfied.
+  const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0 && !submitted
 
+  // Auto-scroll to bottom on every state change that produces new content
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    const el = scrollRef.current
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
     }
   }, [messages, phase, optionsVisible, groundedReady])
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   function pushMia(text: string) {
     setMessages((prev) => [...prev, { role: "mia", text }])
@@ -183,6 +201,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setAnswers([])
     setOptionsVisible(false)
     setGroundedReady(false)
+    setSubmitted(false)
     setMessages([
       {
         role: "mia",
@@ -204,14 +223,13 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setMessages((prev) => [...prev, { role: "user", text: option }])
 
     if (newStep < STEPS.length) {
-      // Advance to next question
       setTimeout(() => {
         setStepIndex(newStep)
         setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStep].question }])
         setOptionsVisible(true)
       }, 350)
     } else {
-      // All 4 answers in — concern is the final option
+      // All 4 answers in — show grounded concern response then bridge
       const resp = CONCERN_RESPONSES[option]
       const responseText = resp
         ? `${resp.headline}\n\n${resp.body}`
@@ -238,8 +256,16 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setGroundedReady(false)
   }
 
+  function goBackToGrounded() {
+    // Remove the last user message ("Yes — show me the summary") and return to grounded
+    setMessages((prev) => prev.filter((m) => m.text !== "Yes — show me the summary"))
+    setPhase("grounded")
+    setGroundedReady(true)
+  }
+
   function handleSubmit() {
     if (!canSubmit) return
+    setSubmitted(true)
     setPhase("handoff")
     setActiveTab("student")
   }
@@ -251,6 +277,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setMessages([])
     setOptionsVisible(false)
     setGroundedReady(false)
+    setSubmitted(false)
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
     setActiveTab("student")
   }
@@ -259,6 +286,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
   if (phase === "handoff") {
     const advisorScript = buildAdvisorOpener(answers, lead.name)
+    const conversationSummary = buildConversationSummary(answers, program)
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} />
@@ -275,7 +303,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               {tab === "student" ? <User size={11} /> : <Clipboard size={11} />}
-              {tab === "student" ? "Student Confirmation" : "Enrollment View"}
+              {tab === "student" ? "Confirmation" : "Enrollment Profile"}
             </button>
           ))}
         </div>
@@ -297,6 +325,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               program={program}
               intent={intent}
               advisorScript={advisorScript}
+              conversationSummary={conversationSummary}
             />
           )}
         </div>
@@ -320,6 +349,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               value={lead.name}
               onChange={(e) => setLead((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="Your name"
+              autoComplete="given-name"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </Field>
@@ -330,6 +360,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               value={lead.phone}
               onChange={(e) => setLead((prev) => ({ ...prev, phone: e.target.value }))}
               placeholder="(555) 000-0000"
+              autoComplete="tel"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </Field>
@@ -340,17 +371,19 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               value={lead.email}
               onChange={(e) => setLead((prev) => ({ ...prev, email: e.target.value }))}
               placeholder="you@email.com"
+              autoComplete="email"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </Field>
 
-          <Field label="Best way to reach you">
+          <Field label="Best way to reach you" required>
             <div className="flex gap-2">
               {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
                 const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
                 return (
                   <button
                     key={opt}
+                    type="button"
                     onClick={() => setLead((prev) => ({ ...prev, contact: opt }))}
                     className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${
                       lead.contact === opt
@@ -367,11 +400,12 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
-          <Field label="Best time to reach you">
+          <Field label="Best time to reach you" required>
             <div className="flex gap-2">
               {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
                 <button
                   key={opt}
+                  type="button"
                   onClick={() => setLead((prev) => ({ ...prev, time: opt }))}
                   className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase transition-colors ${
                     lead.time === opt
@@ -387,9 +421,10 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
           </Field>
 
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed hover:enabled:bg-primary/90"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Send to Enrollment Team
@@ -439,6 +474,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
                 {STEPS[stepIndex].options.map((opt) => (
                   <button
                     key={opt}
+                    type="button"
                     onClick={() => handleOption(opt)}
                     className="w-full text-left px-4 py-2.5 border border-border text-sm text-muted-foreground hover:border-primary hover:text-foreground hover:bg-secondary/40 transition-colors"
                   >
@@ -448,10 +484,11 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               </div>
             )}
 
-            {/* Grounded → See Fit Summary CTA — only shows after both Mia messages have rendered */}
+            {/* Grounded → See Fit Summary CTA */}
             {phase === "grounded" && groundedReady && (
               <div className="ml-9 pt-1">
                 <button
+                  type="button"
                   onClick={showFitSummary}
                   className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -469,6 +506,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
                 program={program}
                 intent={intent}
                 onCapture={() => setPhase("capture")}
+                onBack={goBackToGrounded}
               />
             )}
           </>
@@ -496,6 +534,7 @@ function IdleState({ onStart }: { onStart: () => void }) {
       </div>
       <div className="pt-4 pb-1">
         <button
+          type="button"
           onClick={onStart}
           className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -515,13 +554,15 @@ function FitSummaryCard({
   program,
   intent,
   onCapture,
+  onBack,
 }: {
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   onCapture: () => void
+  onBack: () => void
 }) {
-  const [, , timeline, concern] = answers
+  const [goal, experience, timeline, concern] = answers
   const intentColor =
     intent === "High"
       ? "text-green-400"
@@ -534,6 +575,13 @@ function FitSummaryCard({
       : intent === "Medium"
       ? "bg-yellow-500/10 border-yellow-500/30"
       : "bg-secondary border-border"
+
+  const nextStep =
+    intent === "High"
+      ? "Talk to enrollment this week"
+      : intent === "Medium"
+      ? "Request info — follow up in 2–3 weeks"
+      : "Review program options — no rush"
 
   return (
     <div className="space-y-3 pt-1">
@@ -557,13 +605,22 @@ function FitSummaryCard({
             ["Recommended program", program.name],
             ["Duration", program.duration],
             ["All-in tuition", program.tuition],
+            ["Experience level", experience ?? "—"],
+            ["Your goal", goal ?? "—"],
             ["Your timeline", timeline ?? "—"],
-            ["Main concern", concern?.split("—")[0].trim() ?? "—"],
-            ["Next step", "Talk to enrollment this week"],
+            ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
+            ["Intent level", intent],
+            ["Recommended next step", nextStep],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-start gap-4 text-xs">
               <span className="text-muted-foreground shrink-0">{label}</span>
-              <span className="font-semibold text-foreground text-right">{value}</span>
+              <span
+                className={`font-semibold text-right ${
+                  label === "Intent level" ? intentColor : "text-foreground"
+                }`}
+              >
+                {value}
+              </span>
             </div>
           ))}
         </div>
@@ -573,6 +630,7 @@ function FitSummaryCard({
 
       <div className="ml-9 space-y-2">
         <button
+          type="button"
           onClick={onCapture}
           className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -581,6 +639,16 @@ function FitSummaryCard({
           <ChevronRight size={15} />
         </button>
         <button
+          type="button"
+          onClick={onBack}
+          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          <ChevronLeft size={12} />
+          Edit Answers
+        </button>
+        <button
+          type="button"
           onClick={() => window.open("tel:18005804173")}
           className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -650,22 +718,26 @@ function StudentConfirmation({
         <div className="border border-border bg-secondary p-3 space-y-2">
           {[
             ["Name", lead.name || "—"],
-            ["Intent", { value: intent, className: intentColor }],
-            ["Timeline", timeline ?? "—"],
-            ["Recommended program", program.name],
-            ["Experience level", experience ?? "—"],
-            ["Main concern", answers[3]?.split("—")[0].trim() ?? "—"],
+            ["Phone", lead.phone || "—"],
             ["Preferred contact", lead.contact],
-            ["Best time to reach", `${lead.time}s`],
+            ["Best time", `${lead.time}s`],
+            ["Program interest", program.name],
+            ["Timeline", timeline ?? "—"],
+            ["Experience level", experience ?? "—"],
+            ["Main concern", concern?.replace(/\s*—.*$/, "").trim() ?? "—"],
+            ["Intent level", { value: intent, className: intentColor }],
+            ["Suggested advisor opener", { value: advisorScript, italic: true }],
           ].map(([label, value]) => (
             <div key={label as string} className="flex justify-between items-start gap-4 text-xs">
-              <span className="text-muted-foreground shrink-0">{label as string}</span>
+              <span className="text-muted-foreground shrink-0 min-w-[90px]">{label as string}</span>
               {typeof value === "string" ? (
                 <span className="font-semibold text-foreground text-right">{value}</span>
+              ) : (value as { italic?: boolean }).italic ? (
+                <span className="text-muted-foreground italic text-right leading-relaxed">
+                  {(value as { value: string }).value}
+                </span>
               ) : (
-                <span
-                  className={`font-semibold text-right ${(value as { className: string }).className}`}
-                >
+                <span className={`font-semibold text-right ${(value as { className: string }).className}`}>
                   {(value as { value: string }).value}
                 </span>
               )}
@@ -677,18 +749,20 @@ function StudentConfirmation({
       {/* Actions */}
       <div className="space-y-2 pt-1">
         <button
+          type="button"
+          onClick={onViewEnrollment}
+          className="w-full py-2.5 border border-primary text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          View Enrollment Lead Profile
+        </button>
+        <button
+          type="button"
           onClick={onReset}
           className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Start Over
-        </button>
-        <button
-          onClick={onViewEnrollment}
-          className="w-full py-2.5 border border-primary text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          View Enrollment Profile
         </button>
       </div>
     </div>
@@ -703,14 +777,16 @@ function EnrollmentView({
   program,
   intent,
   advisorScript,
+  conversationSummary,
 }: {
   lead: LeadData
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   advisorScript: string
+  conversationSummary: string
 }) {
-  const [goal, experience, timeline] = answers
+  const [goal, experience, timeline, concern] = answers
   const intentColor =
     intent === "High"
       ? "text-green-400"
@@ -724,12 +800,24 @@ function EnrollmentView({
       ? "bg-yellow-500/10 border-yellow-500/30"
       : "bg-secondary border-border"
 
+  const nextAction =
+    intent === "High"
+      ? `Call or text ${lead.name || "this lead"} within 4 hours. Lead with how WWA addresses their ${concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "concern"} concern. Ask about their target start date.`
+      : intent === "Medium"
+      ? `Follow up within 48 hours. Send program details for ${program.name}. Focus on financing and next cohort dates.`
+      : `Add to nurture sequence. Send program overview email. Check back in 2–3 weeks.`
+
   return (
     <div className="space-y-4 pb-2">
       {/* Lead header */}
       <div className="flex items-center justify-between pb-3 border-b border-border">
         <div>
-          <p className="text-sm font-bold text-foreground">{lead.name || "Anonymous Lead"}</p>
+          <p
+            className="text-sm font-black tracking-widest uppercase text-foreground"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Enrollment Lead Profile
+          </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Mia-qualified &middot;{" "}
             {new Date().toLocaleDateString("en-US", {
@@ -747,15 +835,30 @@ function EnrollmentView({
         </span>
       </div>
 
-      {/* Why Mia routed */}
+      {/* Student Snapshot */}
+      <InfoSection title="Student Snapshot">
+        {[
+          ["Name", lead.name || "—"],
+          ["Phone", lead.phone || "—"],
+          ["Email", lead.email || "Not provided"],
+          ["Contact pref.", `${lead.contact} · ${lead.time}s`],
+          ["Program", program.name],
+          ["Tuition", program.tuition],
+          ["Duration", program.duration],
+        ].map(([l, v]) => (
+          <div key={l} className="flex justify-between items-start gap-4 text-xs">
+            <span className="text-muted-foreground shrink-0">{l}</span>
+            <span className="font-semibold text-foreground text-right">{v}</span>
+          </div>
+        ))}
+      </InfoSection>
+
+      {/* Why Mia Routed This Lead */}
       <InfoSection title="Why Mia Routed This Lead">
         <div className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
-          <p>
-            Goal: <span className="text-foreground">{goal ?? "—"}</span>
-          </p>
-          <p>
-            Experience: <span className="text-foreground">{experience ?? "—"}</span>
-          </p>
+          <p>Goal: <span className="text-foreground">{goal ?? "—"}</span></p>
+          <p>Experience: <span className="text-foreground">{experience ?? "—"}</span></p>
+          <p>Timeline: <span className="text-foreground">{timeline ?? "—"}</span></p>
           <p>
             Intent:{" "}
             <span className={`font-semibold ${intentColor}`}>{intent}</span>
@@ -766,35 +869,29 @@ function EnrollmentView({
               ? "planning later this year"
               : "still researching, not yet ready"}
           </p>
-          <p>
-            Blocker addressed:{" "}
-            <span className="text-foreground">
-              {answers[3]?.split("—")[0].trim() ?? "—"}
-            </span>
-          </p>
-          <p>
-            Program fit:{" "}
-            <span className="text-foreground font-semibold">{program.name}</span>
-          </p>
         </div>
       </InfoSection>
 
-      {/* Student snapshot */}
-      <InfoSection title="Student Snapshot">
-        {[
-          ["Phone", lead.phone || "—"],
-          ["Email", lead.email || "Not provided"],
-          ["Contact pref.", `${lead.contact} · ${lead.time}s`],
-          ["Timeline", timeline ?? "—"],
-          ["Program", program.name],
-          ["Tuition", program.tuition],
-          ["Duration", program.duration],
-        ].map(([l, v]) => (
-          <div key={l} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{l}</span>
-            <span className="font-semibold text-foreground text-right">{v}</span>
-          </div>
-        ))}
+      {/* Main Concern */}
+      <InfoSection title="Main Concern">
+        <p className="text-xs text-foreground leading-relaxed">
+          {concern ?? "—"}
+        </p>
+        {concern && CONCERN_RESPONSES[concern] && (
+          <p className="text-xs text-muted-foreground leading-relaxed mt-1.5 italic">
+            Mia addressed: {CONCERN_RESPONSES[concern].headline}
+          </p>
+        )}
+      </InfoSection>
+
+      {/* Recommended Next Best Action */}
+      <InfoSection title="Recommended Next Best Action">
+        <p className="text-xs text-foreground leading-relaxed">{nextAction}</p>
+      </InfoSection>
+
+      {/* Conversation Summary */}
+      <InfoSection title="Conversation Summary">
+        <p className="text-xs text-muted-foreground leading-relaxed">{conversationSummary}</p>
       </InfoSection>
 
       {/* Suggested opener */}
@@ -818,6 +915,7 @@ function EnrollmentView({
           ].map(({ Icon, label }) => (
             <button
               key={label}
+              type="button"
               className="py-2.5 border border-border text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
@@ -874,6 +972,7 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
         </div>
         {onReset && (
           <button
+            type="button"
             onClick={onReset}
             className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
             title="Start over"
