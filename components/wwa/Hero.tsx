@@ -4,59 +4,47 @@ import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 import MiaPanel from "./MiaPanel"
 import { openApplyModal } from "./ApplyModal"
+import { focusMia } from "./MiaPanel"
 
 export default function Hero() {
   return (
-    <section className="pt-16 min-h-screen flex items-center bg-background relative overflow-hidden">
-      {/* Subtle grid overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.025] pointer-events-none"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg,transparent,transparent 47px,oklch(0.96 0 0/0.6) 47px,oklch(0.96 0 0/0.6) 48px),repeating-linear-gradient(90deg,transparent,transparent 47px,oklch(0.96 0 0/0.6) 47px,oklch(0.96 0 0/0.6) 48px)",
-        }}
-      />
+    /*
+     * pt-[calc(2.5rem+4rem)] = tagline strip (2.5rem) + header bar (4rem)
+     * The header is fixed and now has two tiers so we push content down
+     * to clear both.
+     */
+    <section className="pt-[calc(2.5rem+4rem)] min-h-screen flex items-stretch bg-background relative overflow-hidden">
 
-      {/* Left image strip — full height */}
-      <div className="absolute left-0 top-0 bottom-0 w-[42%] overflow-hidden">
+      {/* Full-bleed background image + dark overlay */}
+      <div className="absolute inset-0">
         <Image
-          src="/images/wwa-welder.png"
+          src="/images/wwa-hero-bg.png"
           alt="Welder training at Western Welding Academy"
           fill
           className="object-cover object-center"
           priority
         />
-        {/* Dark right-side fade so text reads cleanly */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/60 to-background" />
-        {/* Bottom fade */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/30" />
+        {/* Dark overlay — heavy enough to read white text cleanly */}
+        <div className="absolute inset-0 bg-background/75" />
+        {/* Subtle vignette on right to let MiaPanel read cleanly */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/20 to-background/80" />
       </div>
 
-      <div className="max-w-[1440px] mx-auto px-8 w-full py-20 relative">
-        <div className="grid grid-cols-12 gap-8 items-center">
+      <div className="max-w-[1440px] mx-auto px-8 w-full py-20 relative flex items-center">
+        <div className="grid grid-cols-12 gap-10 items-center w-full">
 
-          {/* Left copy — offset to sit over image edge */}
+          {/* LEFT: headline + CTAs — 7 cols */}
           <div className="col-span-7 space-y-8">
-            {/* Eyebrow */}
-            <div className="flex items-center gap-3">
-              <div className="h-px w-10 bg-primary" />
-              <span
-                className="text-primary text-[10px] font-black tracking-[0.25em] uppercase"
-                style={{ fontFamily: "var(--font-barlow-condensed)" }}
-              >
-                Wyoming&apos;s #1 Pipeline Welding School
-              </span>
-            </div>
 
-            {/* Headline */}
+            {/* Headline — split lines matching WWA */}
             <h1
-              className="text-foreground uppercase text-balance"
+              className="text-foreground uppercase leading-none"
               style={{
                 fontFamily: "var(--font-barlow-condensed)",
-                fontSize: "clamp(3.8rem, 6.5vw, 6rem)",
+                fontSize: "clamp(4rem, 7vw, 7rem)",
                 fontWeight: 900,
-                lineHeight: 0.9,
                 letterSpacing: "-0.01em",
+                lineHeight: 0.92,
               }}
             >
               Only The Best<br />
@@ -64,12 +52,18 @@ export default function Hero() {
               Train Here.
             </h1>
 
-            {/* Subhead */}
-            <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">
-              Got questions before you apply? Mia can help you understand cost, housing, program fit, and what happens next.
+            {/* Sub-headline */}
+            <p
+              className="text-foreground/80 font-semibold tracking-wide"
+              style={{
+                fontFamily: "var(--font-barlow-condensed)",
+                fontSize: "clamp(1.25rem, 2vw, 1.6rem)",
+              }}
+            >
+              Do you have what it takes?
             </p>
 
-            {/* CTAs */}
+            {/* Primary CTAs */}
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 onClick={openApplyModal}
@@ -81,42 +75,36 @@ export default function Hero() {
               </button>
               <button
                 onClick={() => document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" })}
-                className="px-8 py-3.5 border border-border text-sm font-black tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
+                className="px-8 py-3.5 border border-foreground/40 text-sm font-black tracking-widest uppercase text-foreground hover:border-foreground hover:bg-foreground/10 transition-colors"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
-                View Programs
+                Program Quiz
               </button>
             </div>
 
-            {/* Proof */}
-            <div className="flex items-center gap-5 pt-1">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-1.5">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-6 h-6 rounded-full border-2 border-background bg-secondary" />
-                  ))}
-                </div>
-                <span className="text-muted-foreground text-sm">2,000+ graduates</span>
-              </div>
-              <div className="h-4 w-px bg-border" />
-              <span className="text-muted-foreground text-sm">
-                Next cohort starts <strong className="text-foreground">Aug 18</strong>
-              </span>
-              <div className="h-4 w-px bg-border" />
-              <span className="text-muted-foreground text-sm">
-                <strong className="text-foreground">94%</strong> reported hire rate
-              </span>
+            {/* AI CTA — separated visually below the traditional CTAs */}
+            <div className="pt-1 flex items-center gap-3">
+              <div className="h-px w-8 bg-primary/60" />
+              <button
+                onClick={() => focusMia()}
+                className="text-xs font-black tracking-[0.2em] uppercase text-primary hover:text-primary/80 transition-colors"
+                style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              >
+                See If WWA Is a Fit
+              </button>
             </div>
+
           </div>
 
-          {/* Mia panel — 5 cols */}
+          {/* RIGHT: Mia panel — 5 cols */}
           <div id="hero-mia" className="col-span-5">
-            {/* Red accent bar above panel */}
             <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />
           </div>
+
         </div>
       </div>
+
     </section>
   )
 }
