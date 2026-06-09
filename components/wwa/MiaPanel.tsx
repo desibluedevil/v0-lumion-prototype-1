@@ -10,7 +10,6 @@ import {
   ChevronLeft,
   User,
   Clipboard,
-  AlertCircle,
   RotateCcw,
   X,
   ChevronDown,
@@ -784,6 +783,15 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
 // ─── Idle State ───────────────────────────────────────────────────────────────
 
+const PLAN_STEPS = [
+  { n: 1, label: "Understand your goal" },
+  { n: 2, label: "Check your experience level" },
+  { n: 3, label: "Look at your timeline" },
+  { n: 4, label: "Answer your biggest concern" },
+  { n: 5, label: "Recommend a next step" },
+  { n: 6, label: "Prepare advisor handoff if you're ready" },
+]
+
 function IdleState({
   onStart,
   programContext,
@@ -802,22 +810,44 @@ function IdleState({
               className="text-xs font-bold tracking-wider uppercase text-primary"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
-              {"You're checking fit for: "}
+              {"Checking fit for: "}
               <span className="text-foreground">{programContext}</span>
             </p>
           </div>
         )}
-        <MiaBubble text="Most people who land here are interested but unsure. I'm here to help you figure out if this is actually a fit — not to sell you." />
-        <MiaBubble text="4 questions. 2 minutes. Straight answer at the end." />
-        <div className="ml-9 flex items-start gap-2 border border-border bg-secondary/40 px-3 py-2.5">
-          <AlertCircle size={13} className="text-primary mt-0.5 shrink-0" />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            If WWA isn&apos;t the right fit, I&apos;ll tell you that too. No pressure. No follow-up
-            unless you ask.
-          </p>
+
+        {/* Mia's opening message */}
+        <MiaBubble text="Tell me what you're trying to figure out. I'll check program fit, cost, housing, timeline, and whether an advisor should follow up." />
+
+        {/* Mia's Plan card */}
+        <div className="ml-9 border border-border bg-secondary/30">
+          <div className="px-3 py-2 border-b border-border flex items-center gap-2">
+            <Clipboard size={11} className="text-primary shrink-0" />
+            <span
+              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              Mia&apos;s Plan
+            </span>
+          </div>
+          <ol className="px-3 py-2.5 space-y-1.5">
+            {PLAN_STEPS.map(({ n, label }) => (
+              <li key={n} className="flex items-start gap-2.5">
+                <span
+                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-border text-[9px] font-black text-muted-foreground mt-px"
+                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                >
+                  {n}
+                </span>
+                <span className="text-xs text-muted-foreground leading-snug">{label}</span>
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
-      <div className="pt-4 pb-1">
+
+      {/* CTAs */}
+      <div className="pt-4 pb-1 space-y-2">
         <button
           type="button"
           onClick={onStart}
@@ -827,6 +857,9 @@ function IdleState({
           Start Fit Check
           <ChevronRight size={15} />
         </button>
+        <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+          No pressure. If WWA is not the right fit, I&apos;ll say that.
+        </p>
       </div>
     </div>
   )
