@@ -6,7 +6,7 @@ import MiaPanel from "./MiaPanel"
 
 export default function Hero() {
   return (
-    <section className="pt-[120px] min-h-screen flex items-center bg-background relative overflow-hidden">
+    <section className="pt-16 min-h-screen flex items-center bg-background relative overflow-hidden">
       {/* Subtle grid overlay */}
       <div
         className="absolute inset-0 opacity-[0.025] pointer-events-none"
@@ -65,8 +65,7 @@ export default function Hero() {
 
             {/* Subhead */}
             <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">
-              Most visitors leave without applying — not because they&apos;re uninterested, but because they have unanswered questions.{" "}
-              <strong className="text-foreground">Mia answers them in 2 minutes and routes the right people to enrollment.</strong>
+              Got questions before you apply? Mia can help you understand cost, housing, program fit, and what happens next.
             </p>
 
             {/* CTAs */}
@@ -110,17 +109,6 @@ export default function Hero() {
 
           {/* Mia panel — 5 cols */}
           <div className="col-span-5">
-            {/* Context label */}
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1 h-1 rounded-full bg-primary" />
-              <span
-                className="text-[10px] font-black tracking-[0.2em] uppercase text-muted-foreground"
-                style={{ fontFamily: "var(--font-barlow-condensed)" }}
-              >
-                AI layer — lives on this page
-              </span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
             {/* Red accent bar above panel */}
             <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />

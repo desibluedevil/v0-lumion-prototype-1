@@ -3,10 +3,10 @@ import MiaPanel from "./MiaPanel"
 import { CheckCircle } from "lucide-react"
 
 const bullets = [
-  "Matches experience level to the right program automatically",
-  "Surfaces financing and housing answers before they bounce",
-  "Routes high-intent leads directly to enrollment — with context",
-  "Gives the advisor a script, not a cold contact form",
+  "Check if WWA fits your goals",
+  "Understand cost, housing, and training options",
+  "Get matched to a recommended next step",
+  "Talk to enrollment only if you're ready",
 ]
 
 export default function MiaSection() {
@@ -24,7 +24,7 @@ export default function MiaSection() {
                   className="text-primary text-[10px] font-black tracking-[0.2em] uppercase"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
-                  Why Mia
+                  Not sure yet?
                 </span>
               </div>
               <h2
@@ -36,13 +36,10 @@ export default function MiaSection() {
                   lineHeight: 1.05,
                 }}
               >
-                Most Visitors Leave<br />Without Applying.
+                Not Ready To Apply Yet?<br />Start Here.
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
-                They&apos;re not uninterested. They have a question about cost, location, or whether they&apos;re experienced enough — and the current site doesn&apos;t answer it at the moment it needs to be answered.
-              </p>
-              <p className="text-foreground text-base leading-relaxed font-medium">
-                Mia intercepts that hesitation, qualifies the lead, and hands it to enrollment with full context.
+                A lot of future welders have the same questions before they apply: Can I afford it? Do I need experience? Can I move to Wyoming? Which program fits me? Mia helps you get clear before you talk to enrollment.
               </p>
             </div>
 
@@ -59,7 +56,7 @@ export default function MiaSection() {
             {/* Pull quote */}
             <div className="border-l-2 border-primary pl-5 py-1.5">
               <p className="text-foreground font-semibold text-sm leading-relaxed">
-                This is not a generic chatbot bolted onto a contact form. It&apos;s a guided qualification flow built for the specific objections a welding school prospect has.
+                Got questions before you apply? Mia can help you understand cost, housing, program fit, and what happens next.
               </p>
             </div>
 
@@ -83,7 +80,7 @@ export default function MiaSection() {
           </div>
 
           {/* Right — Mia panel — 6 cols */}
-          <div className="col-span-6 sticky top-[128px]">
+          <div className="col-span-6 sticky top-24">
             <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />
             <p className="mt-3 text-center text-[11px] text-muted-foreground tracking-wide">

@@ -1,5 +1,4 @@
 import Header from "@/components/wwa/Header"
-import MetricsBanner from "@/components/wwa/MetricsBanner"
 import Hero from "@/components/wwa/Hero"
 import ProofBand from "@/components/wwa/ProofBand"
 import Programs from "@/components/wwa/Programs"
@@ -10,7 +9,6 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background">
       <Header />
-      <MetricsBanner />
       <Hero />
       <ProofBand />
       <Programs />

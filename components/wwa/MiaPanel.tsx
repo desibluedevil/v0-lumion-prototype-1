@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import {
-  ChevronRight,
   Phone,
   MessageSquare,
   Mail,
@@ -137,19 +136,6 @@ interface LeadData {
   time: BestTime
 }
 
-// ─── Funnel ───────────────────────────────────────────────────────────────────
-
-const FUNNEL = ["Visitor", "Qualified Lead", "Hot Lead", "Enrollment Convo", "Application"]
-
-function funnelIndexFor(phase: Phase, answersCount: number): number {
-  if (phase === "handoff") return 3
-  if (phase === "capture") return 2
-  if (phase === "summary") return 2
-  if (phase === "grounded") return 1
-  if (phase === "flow" && answersCount >= 3) return 1
-  return 0
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function MiaPanel({ compact = false }: { compact?: boolean }) {
@@ -172,7 +158,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   const [goal, experience, timeline, concern] = answers
   const program = recommendProgram(experience ?? "")
   const intent = intentLevel(timeline ?? "")
-  const funnelIndex = funnelIndexFor(phase, answers.length)
 
   // Derive submit enabled: name and phone required; contact and time have defaults
   const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0
@@ -276,7 +261,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} />
-        <FunnelStrip funnelIndex={3} />
         <div className="flex border-b border-border shrink-0">
           {(["student", "enrollment"] as const).map((tab) => (
             <button
@@ -325,7 +309,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} />
-        <FunnelStrip funnelIndex={2} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
 
@@ -434,7 +417,6 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
       {phase !== "idle" && (
         <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
       )}
-      {phase !== "idle" && <FunnelStrip funnelIndex={funnelIndex} />}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {phase === "idle" ? (
@@ -950,41 +932,6 @@ function StepProgress({
           </div>
         )
       })}
-    </div>
-  )
-}
-
-function FunnelStrip({ funnelIndex }: { funnelIndex: number }) {
-  return (
-    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-0.5 bg-background/20 overflow-x-auto">
-      <span
-        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 mr-1.5 shrink-0 whitespace-nowrap"
-        style={{ fontFamily: "var(--font-barlow-condensed)" }}
-      >
-        Stage:
-      </span>
-      {FUNNEL.map((label, i) => (
-        <div key={label} className="flex items-center gap-0.5 shrink-0">
-          <span
-            className={`text-[10px] font-bold tracking-wide uppercase whitespace-nowrap transition-colors ${
-              i === funnelIndex
-                ? "text-primary"
-                : i < funnelIndex
-                ? "text-primary/50"
-                : "text-muted-foreground/25"
-            }`}
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            {label}
-          </span>
-          {i < FUNNEL.length - 1 && (
-            <ChevronRight
-              size={8}
-              className={i < funnelIndex ? "text-primary/40" : "text-muted-foreground/20"}
-            />
-          )}
-        </div>
-      ))}
     </div>
   )
 }
