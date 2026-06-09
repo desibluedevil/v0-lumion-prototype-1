@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { ArrowDown, ArrowRight, Clock, DollarSign, TrendingUp } from "lucide-react"
+import { ArrowDown, ArrowRight } from "lucide-react"
 import { openApplyModal } from "./ApplyModal"
 import { focusMia } from "./MiaPanel"
 
@@ -9,9 +9,9 @@ const programs = [
   {
     level: "01",
     name: "Foundational Pipe Welder",
-    duration: "12 weeks",
+    duration: "12 Weeks",
+    payback: "5 Months",
     tuition: "$17,050",
-    salary: "$40K–$60K",
     description:
       "Start from zero. Learn SMAW and basic pipe welding. Built for career changers who have never picked up a torch.",
     tag: "Best for Beginners",
@@ -21,9 +21,9 @@ const programs = [
   {
     level: "02",
     name: "Professional Pipe Welder",
-    duration: "19 weeks",
+    duration: "19 Weeks",
+    payback: "6 Months",
     tuition: "$27,600",
-    salary: "$50K–$90K",
     description:
       "TIG, SMAW, and structural certifications. The path most career-switchers with some trade background take.",
     tag: "Most Popular",
@@ -33,9 +33,9 @@ const programs = [
   {
     level: "03",
     name: "Expert Pipe Welder",
-    duration: "24 weeks",
+    duration: "24 Weeks",
+    payback: "7 Months",
     tuition: "$35,800",
-    salary: "$60K–$125K",
     description:
       "Full cert suite including 6G. Built for experienced welders targeting pipeline shutdown and high-end industrial work.",
     tag: "Highest Earning Potential",
@@ -99,99 +99,109 @@ export default function Programs() {
         </div>
 
         {/* Program cards */}
-        <div className="grid grid-cols-3 gap-0 border border-border">
+        <div className="grid grid-cols-3 gap-6">
           {programs.map((prog) => (
             <div
               key={prog.level}
-              className={`relative flex flex-col p-8 border-r border-border last:border-r-0 transition-colors group hover:bg-secondary/50 ${
-                prog.featured ? "bg-secondary/30" : ""
-              }`}
+              className="relative flex flex-col bg-white text-black group overflow-hidden"
             >
-              {/* Tag */}
+              {/* Tag ribbon */}
               <div
-                className={`absolute top-0 right-0 text-xs font-bold tracking-widest uppercase px-3 py-1 ${
-                  prog.featured
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-muted-foreground"
-                }`}
+                className="bg-primary text-white text-[10px] font-black tracking-[0.2em] uppercase px-4 py-2 text-center"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
                 {prog.tag}
               </div>
 
               {/* Program photo */}
-              <div className="w-full h-40 relative overflow-hidden mb-6">
+              <div className="w-full h-48 relative overflow-hidden">
                 <Image
                   src={prog.image}
                   alt={prog.name}
                   fill
-                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  className="object-cover object-center group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
               </div>
 
-              {/* Level */}
-              <span
-                className="text-muted-foreground/30 text-6xl font-black leading-none mb-2 select-none"
-                style={{ fontFamily: "var(--font-barlow-condensed)" }}
-              >
-                {prog.level}
-              </span>
+              {/* Card body */}
+              <div className="flex flex-col flex-1 p-8">
+                {/* Program name */}
+                <h3
+                  className="text-black font-black uppercase leading-tight mb-6"
+                  style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1.6rem", letterSpacing: "-0.01em" }}
+                >
+                  {prog.name}
+                </h3>
 
-              {/* Program name */}
-              <h3
-                className="text-foreground font-black uppercase leading-tight mb-4"
-                style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1.4rem" }}
-              >
-                {prog.name}
-              </h3>
-
-              {/* Meta */}
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                {[
-                  { Icon: Clock, label: "Duration", value: prog.duration, className: "text-foreground" },
-                  { Icon: DollarSign, label: "Tuition", value: prog.tuition, className: "text-foreground" },
-                  { Icon: TrendingUp, label: "Salary", value: prog.salary, className: "text-primary" },
-                ].map(({ Icon, label, value, className }) => (
-                  <div key={label} className="space-y-1">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Icon size={11} />
-                      <span className="text-[10px] font-bold tracking-widest uppercase" style={{ fontFamily: "var(--font-barlow-condensed)" }}>{label}</span>
-                    </div>
-                    <div className={`font-bold text-sm ${className}`} style={{ fontFamily: "var(--font-barlow-condensed)" }}>{value}</div>
-                    {label === "Salary" && (
-                      <p className="text-[9px] text-muted-foreground/60 leading-tight">Varies by employer, location &amp; role</p>
-                    )}
+                {/* Stats — Program Length + Payback stacked */}
+                <div className="border-t border-b border-black/10 divide-y divide-black/10 mb-6">
+                  <div className="flex items-center justify-between py-3">
+                    <span
+                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      Program Length
+                    </span>
+                    <span
+                      className="text-black font-black text-lg"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      {prog.duration}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center justify-between py-3">
+                    <span
+                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      Avg. Time to Payback
+                    </span>
+                    <span
+                      className="text-primary font-black text-lg"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      {prog.payback}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <span
+                      className="text-[10px] font-black tracking-[0.18em] uppercase text-black/50"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      Tuition
+                    </span>
+                    <span
+                      className="text-black font-black text-lg"
+                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    >
+                      {prog.tuition}
+                    </span>
+                  </div>
+                </div>
 
-              {/* Description */}
-              <p className="text-muted-foreground text-sm leading-relaxed mb-6 flex-1">
-                {prog.description}
-              </p>
+                {/* Description */}
+                <p className="text-black/60 text-sm leading-relaxed mb-8 flex-1">
+                  {prog.description}
+                </p>
 
-              {/* Actions */}
-              <div className="space-y-2 mt-auto">
-                <button
-                  onClick={openApplyModal}
-                  className={`w-full py-3 font-bold tracking-widest uppercase text-sm transition-colors ${
-                    prog.featured
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "border border-border text-foreground hover:bg-secondary"
-                  }`}
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  Apply Now
-                </button>
-                <button
-                  onClick={() => focusMia(prog.name)}
-                  className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  <span className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black tracking-widest">M</span>
-                  See If WWA Is a Fit
-                </button>
+                {/* Actions */}
+                <div className="space-y-2 mt-auto">
+                  <button
+                    onClick={openApplyModal}
+                    className="w-full py-3.5 bg-primary text-white font-black tracking-[0.18em] uppercase text-sm hover:bg-primary/90 transition-colors"
+                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  >
+                    Apply Now
+                  </button>
+                  <button
+                    onClick={() => focusMia(prog.name)}
+                    className="w-full py-3 border-2 border-black text-black text-xs font-black tracking-[0.18em] uppercase hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-2"
+                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  >
+                    <span className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black">M</span>
+                    See If WWA Is a Fit
+                  </button>
+                </div>
               </div>
             </div>
           ))}
