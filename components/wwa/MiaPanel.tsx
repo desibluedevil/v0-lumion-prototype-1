@@ -1185,81 +1185,126 @@ function StudentConfirmation({
   onClose?: () => void
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [, experience, timeline, concern] = answers
+
+  const MIA_RECEIPTS = [
+    "Fit summary created",
+    "Program fit matched",
+    "Main concern captured",
+    "Advisor handoff prepared",
+    "Enrollment follow-up queued",
+  ]
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="space-y-4 pb-4">
 
-      {/* ── Success header ─────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 pt-1">
-        <div className="w-9 h-9 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0 mt-0.5">
-          <Check size={16} className="text-green-400" />
-        </div>
-        <div>
-          <p
-            className="text-base font-black tracking-widest uppercase text-foreground leading-tight"
+      {/* ── YOU'RE ALL SET ─────────────────────────────────────────── */}
+      <div className="pt-1">
+        <h2
+          className="text-lg font-black tracking-widest uppercase text-foreground leading-tight"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          {"You're all set."}
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+          {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
+        </p>
+      </div>
+
+      {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
+      <div className="border border-border bg-secondary/30">
+        <div className="px-4 py-2.5 border-b border-border">
+          <span
+            className="text-[10px] font-black tracking-widest uppercase text-foreground"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
-            {"You're all set!"}
-          </p>
-          <p
-            className="text-xs text-muted-foreground mt-1.5 leading-relaxed"
-          >
-            {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
-          </p>
+            What Mia Did
+          </span>
         </div>
+        <ul className="px-4 py-3 space-y-2">
+          {MIA_RECEIPTS.map((item) => (
+            <li key={item} className="flex items-center gap-2.5 text-xs">
+              <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-primary/10 border border-primary/30">
+                <Check size={9} className="text-primary" />
+              </div>
+              <span className="text-foreground">{item}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {/* ── What was sent summary ──────────────────────────────────── */}
-      <div className="border border-border bg-secondary/50 px-4 py-3 space-y-2.5">
-        <p
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Sent to enrollment
-        </p>
-        {[
-          ["Recommended program", program.name],
-          ["Contact", `${lead.name} · ${lead.phone}`],
-          ["Preferred reach", `${lead.contact} · ${lead.time}`],
-        ].map(([label, value]) => (
-          <div key={label} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{label}</span>
-            <span className="font-semibold text-foreground text-right">{value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Primary actions ────────────────────────────────────────── */}
-      <div className="space-y-2">
-        <button
-          type="button"
-          onClick={onReset}
-          className="w-full py-3 bg-primary text-primary-foreground text-xs font-black tracking-widest uppercase hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          <RotateCcw size={12} />
-          Start Over
-        </button>
-
-        {/* Collapsible enrollment profile disclosure */}
+      {/* ── WHAT THE ADVISOR WILL SEE ─────────────────────────────── */}
+      <div className="border border-border bg-secondary/30">
         <button
           type="button"
           onClick={() => setProfileOpen((v) => !v)}
-          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-secondary/60 transition-colors"
           aria-expanded={profileOpen}
         >
-          <Clipboard size={12} />
-          View Enrollment Profile
-          {profileOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          <div className="flex items-center gap-2">
+            <Clipboard size={11} className="text-muted-foreground shrink-0" />
+            <span
+              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              What the Advisor Will See
+            </span>
+          </div>
+          {profileOpen ? <ChevronUp size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
         </button>
 
-        {/* Close panel */}
+        {profileOpen && (
+          <>
+            {/* Student-readable summary fields */}
+            <div className="border-t border-border px-4 py-3 space-y-2">
+              {[
+                ["Name", lead.name],
+                ["Phone", lead.phone],
+                ["Preferred contact", lead.contact],
+                ["Best time", lead.time],
+                ["Recommended program", program.name],
+                ...(experience ? [["Experience level", experience]] as [string, string][] : []),
+                ...(timeline ? [["Timeline", timeline]] as [string, string][] : []),
+                ...(concern ? [["Main concern", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between items-start gap-4 text-xs">
+                  <span className="text-muted-foreground shrink-0">{label}</span>
+                  <span className="font-semibold text-foreground text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+            {/* Full advisor profile below */}
+            <div className="border-t border-border px-1 py-1">
+              <EnrollmentView
+                lead={lead}
+                answers={answers}
+                program={program}
+                intent={intent}
+                advisorScript={advisorScript}
+                conversationSummary={conversationSummary}
+                embedded
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Actions ────────────────────────────────────────────────── */}
+      <div className="space-y-2 pt-1">
+        <button
+          type="button"
+          onClick={onReset}
+          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          <RotateCcw size={11} />
+          Start Over
+        </button>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/60 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             <X size={11} />
@@ -1267,33 +1312,6 @@ function StudentConfirmation({
           </button>
         )}
       </div>
-
-      {/* ── Enrollment Profile (hidden by default) ─────────────────── */}
-      {profileOpen && (
-        <div className="border border-border">
-          {/* Label strip */}
-          <div className="px-4 py-2.5 border-b border-border bg-secondary/60 flex items-center gap-2">
-            <Clipboard size={11} className="text-muted-foreground shrink-0" />
-            <p
-              className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              Details the advisor receives
-            </p>
-          </div>
-          <div className="px-1 py-1">
-            <EnrollmentView
-              lead={lead}
-              answers={answers}
-              program={program}
-              intent={intent}
-              advisorScript={advisorScript}
-              conversationSummary={conversationSummary}
-              embedded
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
