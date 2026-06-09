@@ -1,6 +1,7 @@
+"use client"
+
 import Image from "next/image"
-import MiaPanel from "./MiaPanel"
-import { CheckCircle } from "lucide-react"
+import { ArrowRight, CheckCircle } from "lucide-react"
 
 const bullets = [
   "Check if WWA fits your goals",
@@ -9,14 +10,23 @@ const bullets = [
   "Talk to enrollment only if you're ready",
 ]
 
+function scrollToMia() {
+  const el = document.getElementById("hero-mia")
+  if (!el) return
+  el.scrollIntoView({ behavior: "smooth", block: "center" })
+  // Brief visual pulse to draw attention to the panel
+  el.style.outline = "2px solid var(--color-primary)"
+  setTimeout(() => { el.style.outline = "" }, 1200)
+}
+
 export default function MiaSection() {
   return (
     <section id="mia-section" className="py-24 bg-card border-t border-border">
       <div className="max-w-[1440px] mx-auto px-8">
-        <div className="grid grid-cols-12 gap-12 items-start">
+        <div className="grid grid-cols-12 gap-16 items-center">
 
-          {/* Left — 6 cols */}
-          <div className="col-span-6 space-y-8 pt-4">
+          {/* Left copy — 6 cols */}
+          <div className="col-span-6 space-y-8">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-px w-10 bg-primary" />
@@ -60,32 +70,46 @@ export default function MiaSection() {
               </p>
             </div>
 
-            {/* Facility photo */}
-            <div className="w-full h-52 relative overflow-hidden border border-border">
+            {/* CTA */}
+            <button
+              onClick={scrollToMia}
+              className="flex items-center gap-3 px-10 py-4 bg-primary text-primary-foreground font-black tracking-widest uppercase hover:bg-primary/90 transition-colors"
+              style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1rem" }}
+            >
+              See If WWA Is a Fit
+              <ArrowRight size={16} />
+            </button>
+            <p className="text-muted-foreground text-xs tracking-wide -mt-5">
+              No account. No commitment. Just a straight answer.
+            </p>
+          </div>
+
+          {/* Right — facility photo — 6 cols */}
+          <div className="col-span-6">
+            <div className="h-0.5 w-full bg-primary mb-0" />
+            <div className="w-full aspect-[4/3] relative overflow-hidden border border-border border-t-0">
               <Image
                 src="/images/wwa-facility.png"
                 alt="Western Welding Academy training facility — Gillette, Wyoming"
                 fill
                 className="object-cover object-center"
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-background/80 to-transparent p-3">
+              <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5 space-y-1">
+                <p
+                  className="text-foreground font-black uppercase tracking-widest text-sm"
+                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                >
+                  Pipeline Training Facility
+                </p>
                 <p
                   className="text-muted-foreground text-[10px] tracking-widest uppercase"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
-                  Pipeline Training Facility — Gillette, WY
+                  Gillette, Wyoming
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Right — Mia panel — 6 cols */}
-          <div className="col-span-6 sticky top-24">
-            <div className="h-0.5 w-full bg-primary mb-0" />
-            <MiaPanel />
-            <p className="mt-3 text-center text-[11px] text-muted-foreground tracking-wide">
-              No account. No commitment. Just a straight answer.
-            </p>
           </div>
 
         </div>

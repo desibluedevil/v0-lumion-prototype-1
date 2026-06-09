@@ -108,7 +108,7 @@ export default function Hero() {
           </div>
 
           {/* Mia panel — 5 cols */}
-          <div className="col-span-5">
+          <div id="hero-mia" className="col-span-5">
             {/* Red accent bar above panel */}
             <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />
