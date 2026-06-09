@@ -80,7 +80,7 @@ export default function Footer() {
 
         <div className="border-t border-border pt-6 flex items-center justify-between">
           <p className="text-muted-foreground text-xs">
-            © 2025 Western Welding Academy. All rights reserved.
+            © 2026 Western Welding Academy. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             {["Privacy Policy", "Terms of Use", "Accreditation"].map((item) => (

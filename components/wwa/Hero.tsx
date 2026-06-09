@@ -6,7 +6,7 @@ import MiaPanel from "./MiaPanel"
 
 export default function Hero() {
   return (
-    <section className="pt-16 min-h-screen flex items-center bg-background relative overflow-hidden">
+    <section className="pt-[120px] min-h-screen flex items-center bg-background relative overflow-hidden">
       {/* Subtle grid overlay */}
       <div
         className="absolute inset-0 opacity-[0.025] pointer-events-none"
@@ -65,8 +65,8 @@ export default function Hero() {
 
             {/* Subhead */}
             <p className="text-muted-foreground text-lg leading-relaxed max-w-lg">
-              Most people leave this page without applying — not because they&apos;re not interested, but because they have questions.{" "}
-              <strong className="text-foreground">Mia answers them in 2 minutes.</strong>
+              Most visitors leave without applying — not because they&apos;re uninterested, but because they have unanswered questions.{" "}
+              <strong className="text-foreground">Mia answers them in 2 minutes and routes the right people to enrollment.</strong>
             </p>
 
             {/* CTAs */}
@@ -79,6 +79,7 @@ export default function Hero() {
                 <ArrowRight size={15} />
               </button>
               <button
+                onClick={() => document.getElementById("programs")?.scrollIntoView({ behavior: "smooth" })}
                 className="px-8 py-3.5 border border-border text-sm font-black tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >

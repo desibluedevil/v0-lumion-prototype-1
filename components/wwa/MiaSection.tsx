@@ -11,7 +11,7 @@ const bullets = [
 
 export default function MiaSection() {
   return (
-    <section className="py-24 bg-secondary/10 border-t border-border">
+    <section id="mia-section" className="py-24 bg-card border-t border-border">
       <div className="max-w-[1440px] mx-auto px-8">
         <div className="grid grid-cols-12 gap-12 items-start">
 
@@ -83,7 +83,7 @@ export default function MiaSection() {
           </div>
 
           {/* Right — Mia panel — 6 cols */}
-          <div className="col-span-6 sticky top-24">
+          <div className="col-span-6 sticky top-[128px]">
             <div className="h-0.5 w-full bg-primary mb-0" />
             <MiaPanel />
             <p className="mt-3 text-center text-[11px] text-muted-foreground tracking-wide">

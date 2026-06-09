@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { ArrowRight, Clock, DollarSign, TrendingUp } from "lucide-react"
 
 const programs = [
@@ -10,9 +11,10 @@ const programs = [
     tuition: "$17,050",
     salary: "$40K–$60K",
     description:
-      "Master SMAW and basic pipe welding. Build the foundation for a career in the trades. Ideal for career changers and beginners.",
+      "Start from zero. Learn SMAW and basic pipe welding. Built for career changers who have never picked up a torch.",
     tag: "Best for Beginners",
     featured: false,
+    image: "/images/program-foundational.png",
   },
   {
     level: "02",
@@ -21,9 +23,10 @@ const programs = [
     tuition: "$27,600",
     salary: "$50K–$90K",
     description:
-      "Advanced pipe welding processes including TIG and structural welding certifications. Ready for pipeline and industrial work.",
+      "TIG, SMAW, and structural certifications. The path most career-switchers with some trade background take.",
     tag: "Most Popular",
     featured: true,
+    image: "/images/program-professional.png",
   },
   {
     level: "03",
@@ -32,15 +35,16 @@ const programs = [
     tuition: "$35,800",
     salary: "$60K–$125K",
     description:
-      "Full certification suite. Pipeline shutdown work, 6G certification, and career placement in high-demand markets.",
+      "Full cert suite including 6G. Built for experienced welders targeting pipeline shutdown and high-end industrial work.",
     tag: "Highest Earning Potential",
     featured: false,
+    image: "/images/program-expert.png",
   },
 ]
 
 export default function Programs() {
   return (
-    <section className="py-24 bg-background">
+    <section id="programs" className="py-24 bg-background">
       <div className="max-w-[1440px] mx-auto px-8">
         {/* Section header */}
         <div className="flex items-end justify-between mb-12">
@@ -76,130 +80,79 @@ export default function Programs() {
 
         {/* Program cards */}
         <div className="grid grid-cols-3 gap-0 border border-border">
-          {programs.map((program, i) => (
+          {programs.map((prog) => (
             <div
-              key={program.level}
+              key={prog.level}
               className={`relative flex flex-col p-8 border-r border-border last:border-r-0 transition-colors group hover:bg-secondary/50 ${
-                program.featured ? "bg-secondary/30" : ""
+                prog.featured ? "bg-secondary/30" : ""
               }`}
             >
-              {/* Featured tag */}
-              {program.featured && (
-                <div
-                  className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-bold tracking-widest uppercase px-3 py-1"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  {program.tag}
-                </div>
-              )}
-              {!program.featured && (
-                <div
-                  className="absolute top-0 right-0 border border-border text-muted-foreground text-xs font-bold tracking-widest uppercase px-3 py-1"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                >
-                  {program.tag}
-                </div>
-              )}
+              {/* Tag */}
+              <div
+                className={`absolute top-0 right-0 text-xs font-bold tracking-widest uppercase px-3 py-1 ${
+                  prog.featured
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border text-muted-foreground"
+                }`}
+                style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              >
+                {prog.tag}
+              </div>
 
-              {/* Photo placeholder */}
-              <div className="w-full h-40 bg-muted border border-border mb-6 flex items-center justify-center">
-                <div className="text-center space-y-1">
-                  <div className="w-10 h-10 mx-auto bg-secondary border border-border flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-muted-foreground" />
-                  </div>
-                  <p
-                    className="text-muted-foreground text-[10px] tracking-widest uppercase"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    Photo Placeholder
-                  </p>
-                </div>
+              {/* Program photo */}
+              <div className="w-full h-40 relative overflow-hidden mb-6">
+                <Image
+                  src={prog.image}
+                  alt={prog.name}
+                  fill
+                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
               </div>
 
               {/* Level */}
               <span
-                className="text-muted-foreground/40 text-6xl font-black leading-none mb-2 select-none"
+                className="text-muted-foreground/30 text-6xl font-black leading-none mb-2 select-none"
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
-                {program.level}
+                {prog.level}
               </span>
 
               {/* Program name */}
               <h3
                 className="text-foreground font-black uppercase leading-tight mb-4"
-                style={{
-                  fontFamily: "var(--font-barlow-condensed)",
-                  fontSize: "1.4rem",
-                }}
+                style={{ fontFamily: "var(--font-barlow-condensed)", fontSize: "1.4rem" }}
               >
-                {program.name}
+                {prog.name}
               </h3>
 
               {/* Meta */}
               <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Clock size={11} />
-                    <span
-                      className="text-[10px] font-bold tracking-widest uppercase"
-                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                    >
-                      Duration
-                    </span>
+                {[
+                  { Icon: Clock, label: "Duration", value: prog.duration, className: "text-foreground" },
+                  { Icon: DollarSign, label: "Tuition", value: prog.tuition, className: "text-foreground" },
+                  { Icon: TrendingUp, label: "Salary", value: prog.salary, className: "text-primary" },
+                ].map(({ Icon, label, value, className }) => (
+                  <div key={label} className="space-y-1">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Icon size={11} />
+                      <span className="text-[10px] font-bold tracking-widest uppercase" style={{ fontFamily: "var(--font-barlow-condensed)" }}>{label}</span>
+                    </div>
+                    <div className={`font-bold text-sm ${className}`} style={{ fontFamily: "var(--font-barlow-condensed)" }}>{value}</div>
                   </div>
-                  <div
-                    className="text-foreground font-bold text-sm"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    {program.duration}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <DollarSign size={11} />
-                    <span
-                      className="text-[10px] font-bold tracking-widest uppercase"
-                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                    >
-                      Tuition
-                    </span>
-                  </div>
-                  <div
-                    className="text-foreground font-bold text-sm"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    {program.tuition}
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <TrendingUp size={11} />
-                    <span
-                      className="text-[10px] font-bold tracking-widest uppercase"
-                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                    >
-                      Salary
-                    </span>
-                  </div>
-                  <div
-                    className="text-primary font-bold text-sm"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    {program.salary}
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Description */}
               <p className="text-muted-foreground text-sm leading-relaxed mb-6 flex-1">
-                {program.description}
+                {prog.description}
               </p>
 
               {/* Actions */}
               <div className="space-y-2 mt-auto">
                 <button
                   className={`w-full py-3 font-bold tracking-widest uppercase text-sm transition-colors ${
-                    program.featured
+                    prog.featured
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "border border-border text-foreground hover:bg-secondary"
                   }`}
@@ -211,7 +164,7 @@ export default function Programs() {
                   className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
-                  <span className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black">M</span>
+                  <span className="w-4 h-4 bg-primary/10 flex items-center justify-center text-primary text-[9px] font-black tracking-widest">M</span>
                   Ask Mia if this fits me
                 </button>
               </div>

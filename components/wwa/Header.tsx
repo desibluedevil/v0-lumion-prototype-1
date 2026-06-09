@@ -19,13 +19,23 @@ export default function Header() {
 
         {/* Nav */}
         <nav className="flex items-center gap-8">
-          {["Programs", "Financial Aid", "Housing", "About Us"].map((item) => (
+          {[
+            { label: "Programs", anchor: "programs" },
+            { label: "Financial Aid", anchor: null },
+            { label: "Housing", anchor: null },
+            { label: "About Us", anchor: null },
+          ].map((item) => (
             <button
-              key={item}
+              key={item.label}
+              onClick={() =>
+                item.anchor
+                  ? document.getElementById(item.anchor)?.scrollIntoView({ behavior: "smooth" })
+                  : undefined
+              }
               className="flex items-center gap-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
-              {item}
+              {item.label}
               <ChevronDown size={14} strokeWidth={2.5} />
             </button>
           ))}
@@ -41,8 +51,12 @@ export default function Header() {
             <Phone size={14} />
             1-800-555-1234
           </a>
-          <button className="px-5 py-2 border border-border text-sm font-bold tracking-widest uppercase text-foreground hover:bg-secondary transition-colors" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
-            Program Quiz
+          <button
+            onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
+            className="px-5 py-2 border border-border text-sm font-bold tracking-widest uppercase text-foreground hover:bg-secondary transition-colors"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            See If It&apos;s a Fit
           </button>
           <button className="px-5 py-2 bg-primary text-primary-foreground text-sm font-bold tracking-widest uppercase hover:bg-primary/90 transition-colors" style={{ fontFamily: "var(--font-barlow-condensed)" }}>
             Apply Now
