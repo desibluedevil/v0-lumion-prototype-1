@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Mail,
   Check,
+  ChevronRight,
   User,
   Clipboard,
   AlertCircle,
@@ -309,6 +310,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} />
+        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
 
@@ -342,7 +344,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             />
           </Field>
 
-          <Field label="Best way to reach you" required>
+          <Field label="Best way to reach you">
             <div className="flex gap-2">
               {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
                 const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
@@ -365,7 +367,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </div>
           </Field>
 
-          <Field label="Best time to reach you" required>
+          <Field label="Best time to reach you">
             <div className="flex gap-2">
               {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
                 <button
@@ -672,19 +674,6 @@ function StudentConfirmation({
         </div>
       </div>
 
-      {/* Advisor opener preview */}
-      <div>
-        <p
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Suggested advisor opener
-        </p>
-        <div className="border border-border bg-secondary/40 px-3 py-2.5">
-          <p className="text-xs text-muted-foreground italic leading-relaxed">{advisorScript}</p>
-        </div>
-      </div>
-
       {/* Actions */}
       <div className="space-y-2 pt-1">
         <button
@@ -823,9 +812,9 @@ function EnrollmentView({
         </p>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { Icon: MessageSquare, label: "Text Lead" },
-            { Icon: Phone, label: "Call Lead" },
-            { Icon: Mail, label: "Add to CRM" },
+            { Icon: MessageSquare, label: "Text Student" },
+            { Icon: Phone, label: "Call Student" },
+            { Icon: Mail, label: "Mark for Nurture" },
           ].map(({ Icon, label }) => (
             <button
               key={label}
@@ -897,6 +886,8 @@ function PanelHeader({ onReset }: { onReset?: () => void }) {
   )
 }
 
+const PROGRESS_STEPS = [...STEPS.map((s) => s.label), "Summary"]
+
 function StepProgress({
   stepIndex,
   phase,
@@ -906,18 +897,20 @@ function StepProgress({
   phase: Phase
   answersCount: number
 }) {
-  const allDone = phase === "grounded" || phase === "summary"
+  const summaryActive = phase === "summary" || phase === "capture"
+  const flowDone = phase === "grounded" || summaryActive
   return (
     <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-1.5">
-      {STEPS.map((s, i) => {
-        const isDone = allDone || i < answersCount
-        const isActive = !allDone && i === stepIndex
+      {PROGRESS_STEPS.map((label, i) => {
+        const isSummaryStep = i === PROGRESS_STEPS.length - 1
+        const isDone = isSummaryStep ? false : flowDone || i < answersCount
+        const isActive = isSummaryStep ? summaryActive : !flowDone && i === stepIndex
         return (
-          <div key={s.id} className="flex items-center gap-1.5 flex-1 min-w-0">
+          <div key={label} className="flex items-center gap-1.5 flex-1 min-w-0">
             <div className="w-full flex flex-col gap-0.5">
               <div
                 className={`h-0.5 transition-colors ${
-                  isDone ? "bg-primary" : isActive ? "bg-primary/50" : "bg-border"
+                  isDone || isActive ? "bg-primary" : "bg-border"
                 }`}
               />
               <span
@@ -926,7 +919,7 @@ function StepProgress({
                 }`}
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
-                {s.label}
+                {label}
               </span>
             </div>
           </div>

@@ -56,7 +56,7 @@ export default function MiaSection() {
             {/* Pull quote */}
             <div className="border-l-2 border-primary pl-5 py-1.5">
               <p className="text-foreground font-semibold text-sm leading-relaxed">
-                Got questions before you apply? Mia can help you understand cost, housing, program fit, and what happens next.
+                No pressure. No hard sell. If WWA isn&apos;t the right fit, Mia will tell you that too.
               </p>
             </div>
 

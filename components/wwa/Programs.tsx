@@ -161,6 +161,7 @@ export default function Programs() {
                   Apply Now
                 </button>
                 <button
+                  onClick={() => document.getElementById("mia-section")?.scrollIntoView({ behavior: "smooth" })}
                   className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:text-primary hover:border-primary transition-colors flex items-center justify-center gap-2"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
