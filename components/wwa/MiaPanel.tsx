@@ -238,8 +238,17 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const [submitted, setSubmitted] = useState(false)
   const [freeInput, setFreeInput] = useState("")
   const [freeAnswering, setFreeAnswering] = useState(false)
+  // Tracks the option the user just tapped so we can flash a blue highlight before transitioning
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  // Controls the success toast shown for ~2s before the handoff screen appears
+  const [showToast, setShowToast] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  // Ref attached to the first option button so we can focus it when options appear
+  const firstOptionRef = useRef<HTMLButtonElement>(null)
+  // Anchor placed immediately before the "Yes — show me the summary" bubble.
+  // scrollToSummaryAnchor() uses this to jump to exactly that spot.
+  const summaryAnchorRef = useRef<HTMLDivElement>(null)
   // Track whether the user has scrolled up manually so we don't hijack their position.
   // Reset to false whenever a phase change happens (new screen = resume auto-scroll).
   const userScrolledUp = useRef(false)
@@ -348,6 +357,15 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const phonePartial = lead.phone.trim().length > 0 && !phoneComplete
   const canSubmit = lead.name.trim().length > 0 && phoneComplete && !submitted
 
+  // ── Keyboard focus management — move focus to first option after it appears ──
+  useEffect(() => {
+    if (optionsVisible && firstOptionRef.current) {
+      // Small delay lets the DOM paint before we steal focus
+      const t = setTimeout(() => firstOptionRef.current?.focus(), 80)
+      return () => clearTimeout(t)
+    }
+  }, [optionsVisible, stepIndex])
+
   // ── User-scroll detection ──────────────────────────────────────────────────
   // When the user scrolls up more than 40px from the bottom we stop auto-scrolling.
   // When they reach the bottom again we re-enable it.
@@ -371,7 +389,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const el = scrollRef.current
     if (!el) return
 
-    function scrollToBottom(smooth: boolean) {
+    function scrollDown(smooth: boolean) {
       if (!el) return
       el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "instant" })
     }
@@ -380,15 +398,18 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     userScrolledUp.current = false
     if (phase === "capture" || phase === "handoff") {
       el.scrollTo({ top: 0, behavior: "smooth" })
+    } else if (phase === "summary") {
+      // Anchor scroll handled by showFitSummary() via rAF — don't fight it here
     } else {
-      scrollToBottom(false)
+      scrollDown(false)
     }
 
     // Watch for DOM mutations (new children added = new messages / chips)
     const observer = new MutationObserver(() => {
-      if (phase === "capture" || phase === "handoff") return
+      // capture / handoff scroll to top; summary uses anchor scroll — skip both
+      if (phase === "capture" || phase === "handoff" || phase === "summary") return
       if (!userScrolledUp.current) {
-        scrollToBottom(true)
+        scrollDown(true)
       }
     })
     observer.observe(el, { childList: true, subtree: true })
@@ -450,6 +471,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const newAnswers = [...answers, option]
     const newStep = stepIndex + 1
 
+    // Flash the selected chip blue for 300ms so the user sees confirmation
+    setSelectedOption(option)
+    setTimeout(() => setSelectedOption(null), 300)
+
     setAnswers(newAnswers)
     setOptionsVisible(false)
     setMessages((prev) => [
@@ -489,10 +514,30 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     }
   }
 
+  function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behavior: ScrollBehavior = "smooth") {
+    const container = scrollRef.current
+    const anchor = anchorRef.current
+    if (!container || !anchor) return
+    const anchorTop = anchor.offsetTop
+    container.scrollTo({ top: anchorTop, behavior })
+  }
+
+  function scrollToBottom(behavior: ScrollBehavior = "smooth") {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }
+
   function showFitSummary() {
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
+    // Scroll to the anchor after the DOM has painted the new bubble
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToAnchor(summaryAnchorRef)
+      })
+    })
   }
 
   function goBackToGrounded() {
@@ -500,12 +545,23 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => prev.filter((m) => m.text !== "Yes — show me the summary"))
     setPhase("grounded")
     setGroundedReady(true)
+    // Scroll back to the bottom so the user sees the bridge message + See Fit Summary CTA
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollToBottom("smooth")
+      })
+    })
   }
 
   function handleSubmit() {
     if (!canSubmit) return
     setSubmitted(true)
-    setPhase("handoff")
+    setShowToast(true)
+    // Show green success toast for 1800ms, then transition to handoff screen
+    setTimeout(() => {
+      setShowToast(false)
+      setPhase("handoff")
+    }, 1800)
   }
 
   // ── Freeform "Ask Mia" ─────────────────────────────────────────────────────
@@ -571,7 +627,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
   }
 
-  // ── Handoff screen ────────────────────────────────────────────────────────
+  // ── Handoff screen ──────────────────────────────────────────���─────────────
 
   if (phase === "handoff") {
     const advisorScript = buildAdvisorOpener(answers, lead.name)
@@ -579,6 +635,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} />
+        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           <StudentConfirmation
             lead={lead}
@@ -613,7 +670,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setLead((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="Your name"
               autoComplete="given-name"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full border border-[#2E2E2E] px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors"
+              style={{ backgroundColor: "#1A1A1A" }}
             />
           </Field>
 
@@ -639,9 +697,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               }}
               placeholder="(555) 000-0000"
               autoComplete="tel"
-              className={`w-full bg-input border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors ${
-                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-border focus:border-primary"
+              className={`w-full border px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none transition-colors ${
+                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-[#2E2E2E] focus:border-primary"
               }`}
+              style={{ backgroundColor: "#1A1A1A" }}
             />
             {phonePartial && (
               <p className="text-[10px] text-red-400 mt-1">
@@ -658,7 +717,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setLead((prev) => ({ ...prev, email: e.target.value }))}
               placeholder="you@email.com"
               autoComplete="email"
-              className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+              className="w-full border border-[#2E2E2E] px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors"
+              style={{ backgroundColor: "#1A1A1A" }}
             />
           </Field>
 
@@ -673,10 +733,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                     onClick={() => setLead((prev) => ({ ...prev, contact: opt }))}
                     className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${
                       lead.contact === opt
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                        ? "border-primary text-white"
+                        : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
                     }`}
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    style={{
+                      backgroundColor: lead.contact === opt ? "#2563EB" : "#161616",
+                      fontFamily: "var(--font-barlow-condensed)",
+                    }}
                   >
                     <Icon size={12} />
                     {opt}
@@ -695,10 +758,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                   onClick={() => setLead((prev) => ({ ...prev, time: opt }))}
                   className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase transition-colors ${
                     lead.time === opt
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                      ? "border-primary text-white"
+                      : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
                   }`}
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  style={{
+                    backgroundColor: lead.time === opt ? "#2563EB" : "#161616",
+                    fontFamily: "var(--font-barlow-condensed)",
+                  }}
                 >
                   {opt}
                 </button>
@@ -707,11 +773,11 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           </Field>
 
           {/* Helper text — always visible before submit */}
-          <div className="border border-border/50 bg-secondary/30 px-3 py-2.5 space-y-1">
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
+          <div className="border border-[#2E2E2E] px-3 py-2.5 space-y-1" style={{ backgroundColor: "#161616" }}>
+            <p className="text-[11px] text-[#B0B0B0] leading-relaxed">
               Your answers help the advisor understand your goals before they reach out.
             </p>
-            <p className="text-[10px] text-muted-foreground/70">
+            <p className="text-[10px] text-[#B0B0B0]/70">
               {"We'll only use this to follow up about WWA programs. No spam."}
             </p>
           </div>
@@ -720,53 +786,56 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed hover:enabled:bg-primary/90"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="w-full py-3.5 font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110"
+            style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
           >
             Connect Me With Enrollment
             <ChevronRight size={15} />
           </button>
 
           {!canSubmit && (
-            <p className="text-center text-[10px] text-muted-foreground/60">
+            <p className="text-center text-[10px] text-[#B0B0B0]/60">
               Enter your name and phone number to continue.
             </p>
           )}
-
-          <div className="flex items-center justify-between border-t border-border/50 pt-3 mt-1">
-            <button
-              type="button"
-              onClick={() => setPhase("summary")}
-              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              <ChevronLeft size={11} />
-              Edit Answers
-            </button>
-            <button
-              type="button"
-              onClick={resetFlow}
-              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              <RotateCcw size={9} />
-              Start Over
-            </button>
-          </div>
         </div>
+
+        {/* Sticky nav bar — Back (Edit Answers) + Start Over */}
+        <div
+          className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
+          style={{ backgroundColor: "#0F0F0F" }}
+        >
+          <button
+            type="button"
+            onClick={() => setPhase("summary")}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            <ChevronLeft size={12} />
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={resetFlow}
+            className="text-[11px] font-bold tracking-widest uppercase transition-colors text-[#2563EB] hover:text-[#60a5fa] focus-visible:outline-none focus-visible:text-[#60a5fa]"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Start Over
+          </button>
+        </div>
+
+        {/* Success toast — slides in from the top when form is submitted */}
+        <SuccessToast visible={showToast} />
       </PanelShell>
     )
   }
 
-  // ── Main flow / idle ───────────────��──────────────────────────────────────
+  // ── Main flow / idle ───────────���───��──────────────────────────────────────
 
   return (
     <PanelShell compact={compact}>
       <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
-
-      {phase !== "idle" && (
-        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
-      )}
+      <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
         {phase === "idle" ? (
@@ -779,56 +848,49 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               ) : msg.role === "status" ? (
                 <StatusPill key={i} text={msg.text} />
               ) : (
-                <UserBubble key={i} text={msg.text} />
+                <div key={i}>
+                  {/* Invisible anchor — scroll target for "See My Fit Summary" */}
+                  {msg.text === "Yes — show me the summary" && (
+                    <div ref={summaryAnchorRef} aria-hidden="true" className="h-0" />
+                  )}
+                  <UserBubble text={msg.text} />
+                </div>
               )
             )}
 
             {/* Step option chips */}
             {phase === "flow" && optionsVisible && stepIndex < STEPS.length && (
               <div className="ml-9 space-y-1.5 pt-1">
-                {STEPS[stepIndex].options.map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => handleOption(opt)}
-                    className="w-full text-left px-4 py-2.5 border border-border text-sm text-muted-foreground hover:border-primary hover:text-foreground hover:bg-secondary/40 transition-colors"
-                  >
-                    {opt}
-                  </button>
-                ))}
-                <div className="flex items-center gap-3 pt-1 mt-1 border-t border-border/50">
-                  {stepIndex > 0 ? (
+                {STEPS[stepIndex].options.map((opt, idx) => {
+                  const isSelected = selectedOption === opt
+                  return (
                     <button
+                      key={opt}
+                      ref={idx === 0 ? firstOptionRef : undefined}
                       type="button"
-                      onClick={goBackOneStep}
-                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
-                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                      onClick={() => handleOption(opt)}
+                      className="w-full text-left px-4 py-2.5 border text-sm transition-all duration-300 focus-visible:outline-none focus-visible:border-primary focus-visible:text-white"
+                      style={{
+                        backgroundColor: isSelected ? "#2563EB" : "#161616",
+                        borderColor: isSelected ? "#2563EB" : "#2E2E2E",
+                        color: isSelected ? "#FFFFFF" : "#B0B0B0",
+                      }}
                     >
-                      <ChevronLeft size={11} />
-                      Back
+                      {opt}
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={resetFlow}
-                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors ml-auto"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    <RotateCcw size={9} />
-                    Start Over
-                  </button>
-                </div>
+                  )
+                })}
               </div>
             )}
 
             {/* Grounded → See Fit Summary CTA */}
             {phase === "grounded" && groundedReady && (
-              <div className="ml-9 pt-1">
+              <div className="ml-9 pt-2 border-t border-[#2E2E2E]">
                 <button
                   type="button"
                   onClick={showFitSummary}
-                  className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  className="w-full py-3 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
+                  style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   See My Fit Summary
                   <ChevronRight size={15} />
@@ -851,9 +913,43 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         )}
       </div>
 
+      {/* Back / Start Over nav bar — sticky at the bottom of the guided flow */}
+      {(phase === "flow" || phase === "grounded") && (
+        <div
+          className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
+          style={{ backgroundColor: "#0F0F0F" }}
+        >
+          {/* Back — rounded outline button, white border + text */}
+          {phase === "flow" && stepIndex > 0 ? (
+            <button
+              type="button"
+              onClick={goBackOneStep}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <ChevronLeft size={12} />
+              Back
+            </button>
+          ) : (
+            /* Placeholder keeps Start Over from jumping to the left */
+            <span />
+          )}
+
+          {/* Start Over — plain blue text link */}
+          <button
+            type="button"
+            onClick={resetFlow}
+            className="text-[11px] font-bold tracking-widest uppercase transition-colors text-[#2563EB] hover:text-[#60a5fa] focus-visible:outline-none focus-visible:text-[#60a5fa]"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Start Over
+          </button>
+        </div>
+      )}
+
       {/* Freeform "Ask Mia" input — shown during flow and grounded phases only */}
       {(phase === "flow" || phase === "grounded") && (
-        <div className="px-5 pb-4 pt-2 border-t border-border/60 bg-background/95">
+        <div className="px-5 pb-4 pt-2.5 border-t border-[#2E2E2E]" style={{ backgroundColor: "#0F0F0F" }}>
           <form
             onSubmit={(e) => { e.preventDefault(); handleFreeInput() }}
             className="flex items-center gap-2"
@@ -864,13 +960,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setFreeInput(e.target.value)}
               placeholder="Ask Mia about cost, housing, experience, jobs, or programs…"
               disabled={freeAnswering}
-              className="flex-1 min-w-0 bg-secondary border border-border px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+              className="flex-1 min-w-0 border border-[#2E2E2E] px-3 py-2 text-xs text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
+              style={{ backgroundColor: "#1A1A1A" }}
             />
             <button
               type="submit"
               disabled={!freeInput.trim() || freeAnswering}
               aria-label="Send question to Mia"
-              className="shrink-0 w-8 h-8 flex items-center justify-center border border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="shrink-0 w-8 h-8 flex items-center justify-center border border-[#2E2E2E] text-[#B0B0B0] hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Send size={13} />
             </button>
@@ -911,7 +1008,7 @@ function IdleState({
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               {"Checking fit for: "}
-              <span className="text-foreground">{programContext}</span>
+              <span className="text-white">{programContext}</span>
             </p>
           </div>
         )}
@@ -920,11 +1017,11 @@ function IdleState({
         <MiaBubble text="Tell me what you're trying to figure out. I'll check program fit, cost, housing, timeline, and whether an advisor should follow up." />
 
         {/* Mia's Plan card */}
-        <div className="ml-9 border border-border bg-secondary/30">
-          <div className="px-3 py-2 border-b border-border flex items-center gap-2">
+        <div className="ml-9 border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+          <div className="px-3 py-2 border-b border-[#2E2E2E] flex items-center gap-2">
             <Clipboard size={11} className="text-primary shrink-0" />
             <span
-              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              className="text-[10px] font-black tracking-widest uppercase text-white"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               Mia&apos;s Plan
@@ -934,12 +1031,12 @@ function IdleState({
             {PLAN_STEPS.map(({ n, label }) => (
               <li key={n} className="flex items-start gap-2.5">
                 <span
-                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-border text-[9px] font-black text-muted-foreground mt-px"
+                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-[#2E2E2E] text-[9px] font-black text-[#B0B0B0] mt-px"
                   style={{ fontFamily: "var(--font-barlow-condensed)" }}
                 >
                   {n}
                 </span>
-                <span className="text-xs text-muted-foreground leading-snug">{label}</span>
+                <span className="text-xs text-[#B0B0B0] leading-snug">{label}</span>
               </li>
             ))}
           </ol>
@@ -947,17 +1044,17 @@ function IdleState({
       </div>
 
       {/* CTAs */}
-      <div className="pt-4 pb-1 space-y-2">
+      <div className="pt-4 pb-1 space-y-2 border-t border-[#2E2E2E] mt-4">
         <button
           type="button"
           onClick={onStart}
-          className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full py-3.5 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
+          style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
         >
           Start Fit Check
           <ChevronRight size={15} />
         </button>
-        <p className="text-center text-[10px] text-muted-foreground/60 leading-relaxed">
+        <p className="text-center text-[10px] text-[#B0B0B0]/60 leading-relaxed">
           No pressure. If WWA is not the right fit, I&apos;ll say that.
         </p>
       </div>
@@ -1039,12 +1136,12 @@ function FitSummaryCard({
       {/* Title + subtitle */}
       <div>
         <h2
-          className="text-sm font-black tracking-widest uppercase text-foreground"
+          className="text-sm font-black tracking-widest uppercase text-white"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Your Fit Summary
         </h2>
-        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+        <p className="text-[11px] text-[#B0B0B0] mt-0.5 leading-snug">
           Based on your goal, experience, timeline, and main concern.
         </p>
       </div>
@@ -1058,11 +1155,11 @@ function FitSummaryCard({
             ["All-in tuition", program.tuition],
           ].map(([l, v]) => (
             <div key={l} className="flex justify-between items-start gap-3 text-xs">
-              <span className="text-muted-foreground shrink-0">{l}</span>
-              <span className="font-semibold text-foreground text-right">{v}</span>
+              <span className="text-[#B0B0B0] shrink-0">{l}</span>
+              <span className="font-semibold text-white text-right">{v}</span>
             </div>
           ))}
-          <p className="text-[11px] text-muted-foreground/80 leading-snug pt-0.5">
+          <p className="text-[11px] text-[#B0B0B0]/70 leading-snug pt-0.5">
             Starting point is based on your experience level and stated goal.
           </p>
         </div>
@@ -1075,7 +1172,7 @@ function FitSummaryCard({
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-2 text-xs">
                 <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
-                <span className="text-foreground leading-snug">{b}</span>
+                <span className="text-white leading-snug">{b}</span>
               </li>
             ))}
           </ul>
@@ -1087,8 +1184,8 @@ function FitSummaryCard({
         <ul className="space-y-1.5">
           {questions.map((q) => (
             <li key={q} className="flex items-start gap-2 text-xs">
-              <span className="shrink-0 w-1 h-1 rounded-full bg-border mt-1.5" />
-              <span className="text-muted-foreground leading-snug italic">{q}</span>
+              <span className="shrink-0 w-1 h-1 rounded-full bg-[#2E2E2E] mt-1.5" />
+              <span className="text-[#B0B0B0] leading-snug italic">{q}</span>
             </li>
           ))}
         </ul>
@@ -1102,30 +1199,32 @@ function FitSummaryCard({
         >
           Suggested Next Step
         </p>
-        <p className="text-xs text-foreground font-semibold leading-snug">{nextStepText}</p>
+        <p className="text-xs text-white font-semibold leading-snug">{nextStepText}</p>
       </div>
 
       {/* Guardrail */}
-      <p className="text-[10px] text-muted-foreground/60 leading-relaxed px-0.5">
+      <p className="text-[10px] text-[#B0B0B0]/60 leading-relaxed px-0.5">
         This is a fit check, not an admissions decision.
       </p>
 
       {/* CTAs */}
-      <div className="space-y-2 pt-1">
-        <button
-          type="button"
-          onClick={onCapture}
-          className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
-        >
-          Connect Me With Enrollment
-          <ChevronRight size={15} />
-        </button>
+      <div className="space-y-2 pt-1 border-t border-[#2E2E2E]">
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={onCapture}
+            className="w-full py-3 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
+            style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Connect Me With Enrollment
+            <ChevronRight size={15} />
+          </button>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onBack}
-            className="flex-1 py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             <ChevronLeft size={12} />
@@ -1133,7 +1232,7 @@ function FitSummaryCard({
           </button>
           <a
             href="tel:18005551234"
-            className="flex-1 py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center"
+            className="flex-1 py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Call Directly
@@ -1142,7 +1241,7 @@ function FitSummaryCard({
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+          className="w-full py-2 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           <RotateCcw size={10} />
@@ -1155,10 +1254,10 @@ function FitSummaryCard({
 
 function SummarySection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="border border-border bg-secondary/30">
-      <div className="px-3 py-2 border-b border-border">
+    <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+      <div className="px-3 py-2 border-b border-[#2E2E2E]">
         <span
-          className="text-[10px] font-black tracking-widest uppercase text-foreground"
+          className="text-[10px] font-black tracking-widest uppercase text-white"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           {label}
@@ -1207,21 +1306,21 @@ function StudentConfirmation({
       {/* ── YOU'RE ALL SET ─────────────────────────────────────────── */}
       <div className="pt-1">
         <h2
-          className="text-lg font-black tracking-widest uppercase text-foreground leading-tight"
+          className="text-lg font-black tracking-widest uppercase text-white leading-tight"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           {"You're all set."}
         </h2>
-        <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+        <p className="text-xs text-[#B0B0B0] mt-1.5 leading-relaxed">
           {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
         </p>
       </div>
 
       {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
-      <div className="border border-border bg-secondary/30">
-        <div className="px-4 py-2.5 border-b border-border">
+      <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+        <div className="px-4 py-2.5 border-b border-[#2E2E2E]">
           <span
-            className="text-[10px] font-black tracking-widest uppercase text-foreground"
+            className="text-[10px] font-black tracking-widest uppercase text-white"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             What Mia Did
@@ -1233,36 +1332,37 @@ function StudentConfirmation({
               <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-primary/10 border border-primary/30">
                 <Check size={9} className="text-primary" />
               </div>
-              <span className="text-foreground">{item}</span>
+              <span className="text-white">{item}</span>
             </li>
           ))}
         </ul>
       </div>
 
       {/* ── WHAT THE ADVISOR WILL SEE ─────────────────────────────── */}
-      <div className="border border-border bg-secondary/30">
+      <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
         <button
           type="button"
           onClick={() => setProfileOpen((v) => !v)}
-          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-secondary/60 transition-colors"
+          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:brightness-110 transition-all"
+          style={{ backgroundColor: "#161616" }}
           aria-expanded={profileOpen}
         >
           <div className="flex items-center gap-2">
-            <Clipboard size={11} className="text-muted-foreground shrink-0" />
+            <Clipboard size={11} className="text-[#B0B0B0] shrink-0" />
             <span
-              className="text-[10px] font-black tracking-widest uppercase text-foreground"
+              className="text-[10px] font-black tracking-widest uppercase text-white"
               style={{ fontFamily: "var(--font-barlow-condensed)" }}
             >
               What the Advisor Will See
             </span>
           </div>
-          {profileOpen ? <ChevronUp size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
+          {profileOpen ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
         </button>
 
         {profileOpen && (
           <>
             {/* Student-readable summary fields */}
-            <div className="border-t border-border px-4 py-3 space-y-2">
+            <div className="border-t border-[#2E2E2E] px-4 py-3 space-y-2">
               {[
                 ["Name", lead.name],
                 ["Phone", lead.phone],
@@ -1274,8 +1374,8 @@ function StudentConfirmation({
                 ...(concern ? [["Main concern", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between items-start gap-4 text-xs">
-                  <span className="text-muted-foreground shrink-0">{label}</span>
-                  <span className="font-semibold text-foreground text-right">{value}</span>
+                  <span className="text-[#B0B0B0] shrink-0">{label}</span>
+                  <span className="font-semibold text-white text-right">{value}</span>
                 </div>
               ))}
             </div>
@@ -1300,7 +1400,7 @@ function StudentConfirmation({
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-3 border border-border text-xs font-black tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 border border-[#2E2E2E] text-xs font-black tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           <RotateCcw size={11} />
@@ -1310,7 +1410,7 @@ function StudentConfirmation({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             <X size={11} />
@@ -1419,15 +1519,15 @@ function EnrollmentView({
     <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
 
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between pb-3 border-b border-border gap-3">
+      <div className="flex items-start justify-between pb-3 border-b border-[#2E2E2E] gap-3">
         <div>
           <p
-            className="text-sm font-black tracking-widest uppercase text-foreground"
+            className="text-sm font-black tracking-widest uppercase text-white"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Enrollment Lead Profile
           </p>
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-snug">
+          <p className="text-[11px] text-[#B0B0B0]/70 mt-0.5 leading-snug">
             Generated by Mia from the student&apos;s fit check &middot;{" "}
             {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
@@ -1450,8 +1550,8 @@ function EnrollmentView({
           ["Recommended program", program.name],
         ].map(([l, v]) => (
           <div key={l} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{l}</span>
-            <span className="font-semibold text-foreground text-right">{v}</span>
+            <span className="text-[#B0B0B0] shrink-0">{l}</span>
+            <span className="font-semibold text-white text-right">{v}</span>
           </div>
         ))}
       </InfoSection>
@@ -1466,17 +1566,17 @@ function EnrollmentView({
           ["Fit signal", fitSignal],
         ].map(([l, v]) => (
           <div key={String(l)} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-muted-foreground shrink-0">{l}</span>
-            <span className="font-semibold text-foreground text-right">{v}</span>
+            <span className="text-[#B0B0B0] shrink-0">{l}</span>
+            <span className="font-semibold text-white text-right">{v}</span>
           </div>
         ))}
       </InfoSection>
 
       {/* ── 3. Main Concern ───────────────────────────────────────── */}
       <InfoSection title="Main Concern">
-        <p className="text-xs font-semibold text-foreground mb-2">{concernLabel}</p>
+        <p className="text-xs font-semibold text-white mb-2">{concernLabel}</p>
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-muted-foreground mb-1.5"
+          className="text-[10px] font-black tracking-widest uppercase text-[#B0B0B0] mb-1.5"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Suggested Talking Points
@@ -1485,7 +1585,7 @@ function EnrollmentView({
           {concernPoints.map((pt) => (
             <li key={pt} className="flex items-start gap-2 text-xs">
               <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
-              <span className="text-muted-foreground leading-snug">{pt}</span>
+              <span className="text-[#B0B0B0] leading-snug">{pt}</span>
             </li>
           ))}
         </ul>
@@ -1493,7 +1593,7 @@ function EnrollmentView({
 
       {/* ── 4. Conversation Summary ───────────────────────────────── */}
       <InfoSection title="Conversation Summary">
-        <p className="text-xs text-muted-foreground leading-relaxed">{conversationSummary}</p>
+        <p className="text-xs text-[#B0B0B0] leading-relaxed">{conversationSummary}</p>
       </InfoSection>
 
       {/* ── 5. Recommended Next Best Action ──────────────────────── */}
@@ -1504,18 +1604,18 @@ function EnrollmentView({
         >
           Recommended Next Best Action
         </p>
-        <p className="text-xs text-foreground font-semibold leading-snug">{nextAction}</p>
+        <p className="text-xs text-white font-semibold leading-snug">{nextAction}</p>
       </div>
 
       {/* ── 6. Suggested Advisor Opener ───────────────────────────── */}
       <InfoSection title="Suggested Advisor Opener">
-        <p className="text-xs text-foreground italic leading-relaxed">{advisorScript}</p>
+        <p className="text-xs text-white italic leading-relaxed">{advisorScript}</p>
       </InfoSection>
 
       {/* ── Actions ───────────────────────────────────────────────── */}
       <div className="space-y-2 pt-1">
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-muted-foreground"
+          className="text-[10px] font-black tracking-widest uppercase text-[#B0B0B0]"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           Actions
@@ -1529,8 +1629,8 @@ function EnrollmentView({
             <button
               key={label}
               type="button"
-              className="py-3 border border-border text-[10px] font-black tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-colors flex flex-col items-center gap-1.5"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              className="py-3 border border-[#2E2E2E] text-[10px] font-black tracking-widest uppercase text-[#B0B0B0] hover:border-primary hover:text-white transition-colors flex flex-col items-center gap-1.5"
+              style={{ fontFamily: "var(--font-barlow-condensed)", backgroundColor: "#161616" }}
             >
               <Icon size={13} />
               {label}
@@ -1547,9 +1647,10 @@ function EnrollmentView({
 function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
   return (
     <div
-      className={`flex flex-col bg-card border border-border overflow-hidden ${
+      className={`relative flex flex-col overflow-hidden border border-[#2E2E2E] ${
         compact ? "h-[560px]" : "h-full"
       }`}
+      style={{ backgroundColor: "#0F0F0F" }}
     >
       {children}
     </div>
@@ -1558,7 +1659,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
 
 function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
   return (
-    <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+    <div className="px-4 py-3 border-b border-[#2E2E2E] flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
         <div className="w-7 h-7 bg-primary flex items-center justify-center shrink-0">
           <span
@@ -1570,24 +1671,24 @@ function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () 
         </div>
         <div className="leading-tight">
           <div
-            className="text-foreground font-black text-xs tracking-widest uppercase"
+            className="text-white font-black text-xs tracking-widest uppercase"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Mia — Enrollment Assistant
           </div>
-          <div className="text-muted-foreground text-[10px]">Western Welding Academy</div>
+          <div className="text-[#B0B0B0] text-[10px]">Western Welding Academy</div>
         </div>
       </div>
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] text-muted-foreground">Online</span>
+          <span className="text-[10px] text-[#B0B0B0]">Online</span>
         </div>
         {onReset && (
           <button
             type="button"
             onClick={onReset}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 text-[#B0B0B0] hover:text-white transition-colors"
             title="Start over"
             aria-label="Start over"
           >
@@ -1598,7 +1699,7 @@ function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () 
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1 text-[#B0B0B0] hover:text-white transition-colors"
             title="Close panel"
             aria-label="Close Mia panel"
           >
@@ -1622,24 +1723,26 @@ function StepProgress({
   answersCount: number
 }) {
   const summaryActive = phase === "summary" || phase === "capture"
-  const flowDone = phase === "grounded" || summaryActive
+  const handoffActive = phase === "handoff"
+  const flowDone = phase === "grounded" || summaryActive || handoffActive
+  const isIdle = phase === "idle"
   return (
-    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-1.5">
+    <div className="px-4 py-2 border-b border-[#2E2E2E] shrink-0 flex items-center gap-1.5">
       {PROGRESS_STEPS.map((label, i) => {
         const isSummaryStep = i === PROGRESS_STEPS.length - 1
-        const isDone = isSummaryStep ? false : flowDone || i < answersCount
-        const isActive = isSummaryStep ? summaryActive : !flowDone && i === stepIndex
+        const isDone = isIdle ? false : isSummaryStep ? handoffActive : flowDone || i < answersCount
+        const isActive = isIdle ? false : isSummaryStep ? summaryActive || handoffActive : !flowDone && i === stepIndex
         return (
           <div key={label} className="flex items-center gap-1.5 flex-1 min-w-0">
             <div className="w-full flex flex-col gap-0.5">
               <div
                 className={`h-0.5 transition-colors ${
-                  isDone || isActive ? "bg-primary" : "bg-border"
+                  isDone || isActive ? "bg-primary" : "bg-[#2E2E2E]"
                 }`}
               />
               <span
                 className={`text-[10px] font-bold tracking-widest uppercase truncate ${
-                  isDone || isActive ? "text-primary" : "text-muted-foreground/40"
+                  isDone || isActive ? "text-primary" : "text-[#B0B0B0]/50"
                 }`}
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
               >
@@ -1649,6 +1752,34 @@ function StepProgress({
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// ─── Success Toast ────────────────────────────────────────────────────────────
+
+function SuccessToast({ visible }: { visible: boolean }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="absolute top-0 inset-x-0 z-50 flex items-center justify-center gap-2.5 px-4 py-3 border-b border-green-700/40 transition-all duration-300"
+      style={{
+        backgroundColor: "#0a2318",
+        transform: visible ? "translateY(0)" : "translateY(-100%)",
+        opacity: visible ? 1 : 0,
+        pointerEvents: visible ? "auto" : "none",
+      }}
+    >
+      <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center shrink-0">
+        <Check size={11} className="text-green-400" />
+      </div>
+      <span
+        className="text-xs font-bold tracking-widest uppercase text-green-400"
+        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+      >
+        Submitted — connecting you with an advisor
+      </span>
     </div>
   )
 }
@@ -1671,7 +1802,7 @@ function StatusPill({ text }: { text: string }) {
 function MiaBubble({ text }: { text: string }) {
   return (
     <div className="flex gap-2.5">
-      <div className="w-6 h-6 bg-primary shrink-0 flex items-center justify-center mt-0.5">
+      <div className="w-6 h-6 bg-primary shrink-0 flex items-center justify-center mt-0.5 rounded-sm">
         <span
           className="text-primary-foreground text-[8px] font-black"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -1679,7 +1810,10 @@ function MiaBubble({ text }: { text: string }) {
           M
         </span>
       </div>
-      <div className="bg-secondary px-3.5 py-2.5 text-sm text-foreground leading-relaxed whitespace-pre-wrap max-w-[88%]">
+      <div
+        className="px-3.5 py-2.5 text-sm text-white leading-relaxed whitespace-pre-wrap max-w-[88%] rounded-md rounded-tl-none"
+        style={{ backgroundColor: "#1A1A1A" }}
+      >
         {text}
       </div>
     </div>
@@ -1689,7 +1823,10 @@ function MiaBubble({ text }: { text: string }) {
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
-      <div className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] bg-primary text-primary-foreground">
+      <div
+        className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] text-white rounded-md rounded-tr-none"
+        style={{ backgroundColor: "#262626" }}
+      >
         {text}
       </div>
     </div>
@@ -1712,7 +1849,7 @@ function Field({
     return (
       <fieldset className="space-y-1 border-0 p-0 m-0">
         <legend
-          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1"
+          className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] flex items-center gap-1"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
           {label}
@@ -1726,7 +1863,7 @@ function Field({
     <div className="space-y-1">
       <label
         htmlFor={id}
-        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground flex items-center gap-1"
+        className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] flex items-center gap-1"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >
         {label}
@@ -1741,12 +1878,12 @@ function InfoSection({ title, children }: { title: string; children: React.React
   return (
     <div className="space-y-1.5">
       <p
-        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
+        className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >
         {title}
       </p>
-      <div className="border border-border bg-secondary p-3 space-y-1.5">{children}</div>
+      <div className="border border-[#2E2E2E] p-3 space-y-1.5" style={{ backgroundColor: "#161616" }}>{children}</div>
     </div>
   )
 }
