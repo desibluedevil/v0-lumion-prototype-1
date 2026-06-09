@@ -1,7 +1,17 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronRight, Phone, MessageSquare, Mail, Check, User, Clipboard, AlertCircle, RotateCcw } from "lucide-react"
+import {
+  ChevronRight,
+  Phone,
+  MessageSquare,
+  Mail,
+  Check,
+  User,
+  Clipboard,
+  AlertCircle,
+  RotateCcw,
+} from "lucide-react"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -78,8 +88,10 @@ const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
 }
 
 function recommendProgram(experience: string): { name: string; duration: string; tuition: string } {
-  if (experience.includes("Experienced")) return { name: "Expert Pipe Welder", duration: "24 weeks", tuition: "$35,800" }
-  if (experience.includes("on the job")) return { name: "Professional Pipe Welder", duration: "19 weeks", tuition: "$27,600" }
+  if (experience.includes("Experienced"))
+    return { name: "Expert Pipe Welder", duration: "24 weeks", tuition: "$35,800" }
+  if (experience.includes("on the job"))
+    return { name: "Professional Pipe Welder", duration: "19 weeks", tuition: "$27,600" }
   return { name: "Foundational Pipe Welder", duration: "12 weeks", tuition: "$17,050" }
 }
 
@@ -89,11 +101,25 @@ function intentLevel(timeline: string): "High" | "Medium" | "Researching" {
   return "Researching"
 }
 
-function advisorOpener(answers: string[]): string {
-  const [goal, , , concern] = answers
-  const goalShort = goal ? goal.replace(/^(Start a |Get into |Learn a |Upgrade my current |Not sure yet — )/, "").toLowerCase() : "a welding career"
-  const concernLabel = concern ? concern.replace("—", "").replace(/\?$/, "").trim().toLowerCase() : "their situation"
-  return `"Hey [Name] — Mia flagged your fit check. You're aiming for ${goalShort}, and your main question was around ${concernLabel}. Do you have 10 minutes to walk through what that actually looks like?"`
+function buildAdvisorOpener(answers: string[], leadName: string): string {
+  const [, experience, timeline, concern] = answers
+  const name = leadName.trim() || "This lead"
+  const expShort = experience?.includes("None") || experience?.includes("beginner")
+    ? "no prior welding experience"
+    : experience?.includes("on the job")
+    ? "some on-the-job welding experience"
+    : experience?.includes("Experienced")
+    ? "significant welding experience"
+    : "some welding background"
+  const timeShort = timeline?.includes("ASAP")
+    ? "ready to start immediately"
+    : timeline?.includes("30–90")
+    ? "looking to start within 90 days"
+    : timeline?.includes("Later this year")
+    ? "targeting later this year"
+    : "still in the research phase"
+  const concernShort = concern?.replace(/—.*$/, "").toLowerCase().trim() ?? "their situation"
+  return `"${name} is ${timeShort}, has ${expShort}, and is mainly concerned about ${concernShort}. Start with how we address that concern directly, then walk through the program fit and next cohort dates."`
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -111,7 +137,7 @@ interface LeadData {
   time: BestTime
 }
 
-// ─── Funnel mapping ───────────────────────────────────────────────────────────
+// ─── Funnel ───────────────────────────────────────────────────────────────────
 
 const FUNNEL = ["Visitor", "Qualified Lead", "Hot Lead", "Enrollment Convo", "Application"]
 
@@ -131,9 +157,16 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   const [answers, setAnswers] = useState<string[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [phase, setPhase] = useState<Phase>("idle")
-  const [lead, setLead] = useState<LeadData>({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
+  const [lead, setLead] = useState<LeadData>({
+    name: "",
+    phone: "",
+    email: "",
+    contact: "Text",
+    time: "Morning",
+  })
   const [activeTab, setActiveTab] = useState<"student" | "enrollment">("student")
   const [optionsVisible, setOptionsVisible] = useState(false)
+  const [groundedReady, setGroundedReady] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const [goal, experience, timeline, concern] = answers
@@ -141,66 +174,88 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
   const intent = intentLevel(timeline ?? "")
   const funnelIndex = funnelIndexFor(phase, answers.length)
 
+  // Derive submit enabled: name and phone required; contact and time have defaults
+  const canSubmit = lead.name.trim().length > 0 && lead.phone.trim().length > 0
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, phase, optionsVisible])
+  }, [messages, phase, optionsVisible, groundedReady])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  function pushMia(text: string, delay = 0) {
-    const push = () => setMessages((prev) => [...prev, { role: "mia", text }])
-    if (delay > 0) setTimeout(push, delay)
-    else push()
+  function pushMia(text: string) {
+    setMessages((prev) => [...prev, { role: "mia", text }])
   }
 
-  // ── Flow actions ──────────────────────────────────────────────────────────
+  // ── Flow ──────────────────────────────────────────────────────────────────
 
   function startFlow() {
     setPhase("flow")
     setStepIndex(0)
     setAnswers([])
     setOptionsVisible(false)
+    setGroundedReady(false)
     setMessages([
-      { role: "mia", text: "I'll ask 4 questions to figure out if WWA is a realistic fit for you. Honest answers only — I'll tell you if it's not the right move." },
+      {
+        role: "mia",
+        text: "I'll ask 4 questions to figure out if WWA is a realistic fit for you. Honest answers only — I'll tell you straight if it's not the right move.",
+      },
     ])
     setTimeout(() => {
       setMessages((prev) => [...prev, { role: "mia", text: STEPS[0].question }])
       setOptionsVisible(true)
-    }, 600)
+    }, 500)
   }
 
   function handleOption(option: string) {
     const newAnswers = [...answers, option]
-    const newStepIndex = stepIndex + 1
+    const newStep = stepIndex + 1
 
     setAnswers(newAnswers)
     setOptionsVisible(false)
     setMessages((prev) => [...prev, { role: "user", text: option }])
 
-    if (newStepIndex < STEPS.length) {
+    if (newStep < STEPS.length) {
+      // Advance to next question
       setTimeout(() => {
-        setStepIndex(newStepIndex)
-        setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStepIndex].question }])
+        setStepIndex(newStep)
+        setMessages((prev) => [...prev, { role: "mia", text: STEPS[newStep].question }])
         setOptionsVisible(true)
-      }, 400)
+      }, 350)
     } else {
-      // All 4 answers collected — show grounded concern response
+      // All 4 answers in — concern is the final option
       const resp = CONCERN_RESPONSES[option]
-      setPhase("grounded")
       const responseText = resp
         ? `${resp.headline}\n\n${resp.body}`
-        : "That's a fair concern. An enrollment advisor can give you a straight answer based on your specific situation."
+        : "That's a fair concern. An enrollment advisor can walk you through specifics based on your situation."
+      const bridgeText =
+        "Based on what you've told me, I can pull up your fit summary — which program matches, what it costs, and what to expect. Ready?"
 
-      setTimeout(() => pushMia(responseText), 400)
-      setTimeout(() => pushMia("Based on what you've told me, I can show you exactly which program fits, what it costs, and what to expect. Ready to see your summary?"), 1400)
+      setPhase("grounded")
+      setGroundedReady(false)
+
+      setTimeout(() => {
+        pushMia(responseText)
+        setTimeout(() => {
+          pushMia(bridgeText)
+          setGroundedReady(true)
+        }, 900)
+      }, 350)
     }
   }
 
   function showFitSummary() {
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
+    setGroundedReady(false)
+  }
+
+  function handleSubmit() {
+    if (!canSubmit) return
+    setPhase("handoff")
+    setActiveTab("student")
   }
 
   function resetFlow() {
@@ -209,13 +264,15 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     setAnswers([])
     setMessages([])
     setOptionsVisible(false)
+    setGroundedReady(false)
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
     setActiveTab("student")
   }
 
-  // ── Handoff ───────────────────────────────────────────────────────────────
+  // ── Handoff screen ────────────────────────────────────────────────────────
 
   if (phase === "handoff") {
+    const advisorScript = buildAdvisorOpener(answers, lead.name)
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} />
@@ -237,16 +294,24 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
             </button>
           ))}
         </div>
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
           {activeTab === "student" ? (
-            <StudentConfirmation lead={lead} answers={answers} program={program} intent={intent} />
+            <StudentConfirmation
+              lead={lead}
+              answers={answers}
+              program={program}
+              intent={intent}
+              advisorScript={advisorScript}
+              onReset={resetFlow}
+              onViewEnrollment={() => setActiveTab("enrollment")}
+            />
           ) : (
             <EnrollmentView
               lead={lead}
               answers={answers}
               program={program}
               intent={intent}
-              advisorScript={advisorOpener(answers)}
+              advisorScript={advisorScript}
             />
           )}
         </div>
@@ -254,7 +319,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     )
   }
 
-  // ── Lead capture ──────────────────────────────────────────────────────────
+  // ── Lead capture screen ───────────────────────────────────────────────────
 
   if (phase === "capture") {
     return (
@@ -263,41 +328,45 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
         <FunnelStrip funnelIndex={2} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
+
           <Field label="First name" required>
             <input
               type="text"
               value={lead.name}
-              onChange={(e) => setLead({ ...lead, name: e.target.value })}
+              onChange={(e) => setLead((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="Your name"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </Field>
+
           <Field label="Phone" required>
             <input
               type="tel"
               value={lead.phone}
-              onChange={(e) => setLead({ ...lead, phone: e.target.value })}
+              onChange={(e) => setLead((prev) => ({ ...prev, phone: e.target.value }))}
               placeholder="(555) 000-0000"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </Field>
+
           <Field label="Email (optional)">
             <input
               type="email"
               value={lead.email}
-              onChange={(e) => setLead({ ...lead, email: e.target.value })}
+              onChange={(e) => setLead((prev) => ({ ...prev, email: e.target.value }))}
               placeholder="you@email.com"
               className="w-full bg-input border border-border px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </Field>
-          <Field label="Best way to reach you">
+
+          <Field label="Best way to reach you" required>
             <div className="flex gap-2">
               {(["Text", "Call", "Email"] as ContactPref[]).map((opt) => {
                 const Icon = opt === "Text" ? MessageSquare : opt === "Call" ? Phone : Mail
                 return (
                   <button
                     key={opt}
-                    onClick={() => setLead({ ...lead, contact: opt })}
+                    onClick={() => setLead((prev) => ({ ...prev, contact: opt }))}
                     className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${
                       lead.contact === opt
                         ? "border-primary bg-primary text-primary-foreground"
@@ -305,18 +374,20 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
                     }`}
                     style={{ fontFamily: "var(--font-barlow-condensed)" }}
                   >
-                    <Icon size={12} /> {opt}
+                    <Icon size={12} />
+                    {opt}
                   </button>
                 )
               })}
             </div>
           </Field>
-          <Field label="Best time to call">
+
+          <Field label="Best time to reach you" required>
             <div className="flex gap-2">
               {(["Morning", "Afternoon", "Evening"] as BestTime[]).map((opt) => (
                 <button
                   key={opt}
-                  onClick={() => setLead({ ...lead, time: opt })}
+                  onClick={() => setLead((prev) => ({ ...prev, time: opt }))}
                   className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase transition-colors ${
                     lead.time === opt
                       ? "border-primary bg-primary text-primary-foreground"
@@ -329,20 +400,24 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               ))}
             </div>
           </Field>
+
           <button
-            onClick={() => {
-              if (!lead.name || !lead.phone) return
-              setPhase("handoff")
-              setActiveTab("student")
-            }}
-            disabled={!lead.name || !lead.phone}
-            className="w-full py-3 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{ fontFamily: "var(--font-barlow-condensed)" }}
           >
             Send to Enrollment Team
             <ChevronRight size={15} />
           </button>
-          <p className="text-center text-[10px] text-muted-foreground">
+
+          {!canSubmit && (
+            <p className="text-center text-[10px] text-muted-foreground/60">
+              Enter your name and phone number to continue.
+            </p>
+          )}
+
+          <p className="text-center text-[10px] text-muted-foreground pb-1">
             No spam. One follow-up from a real advisor.
           </p>
         </div>
@@ -350,13 +425,15 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
     )
   }
 
-  // ── Main chat / flow ──────────────────────────────────────────────────────
+  // ── Main flow / idle ──────────────────────────────────────────────────────
 
   return (
     <PanelShell compact={compact}>
       <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} />
 
-      {phase !== "idle" && <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />}
+      {phase !== "idle" && (
+        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
+      )}
       {phase !== "idle" && <FunnelStrip funnelIndex={funnelIndex} />}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
@@ -372,7 +449,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               )
             )}
 
-            {/* Step options */}
+            {/* Step option chips */}
             {phase === "flow" && optionsVisible && stepIndex < STEPS.length && (
               <div className="ml-9 space-y-1.5 pt-1">
                 {STEPS[stepIndex].options.map((opt) => (
@@ -387,8 +464,8 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               </div>
             )}
 
-            {/* Grounded → See Summary CTA */}
-            {phase === "grounded" && messages.length >= 3 && (
+            {/* Grounded → See Fit Summary CTA — only shows after both Mia messages have rendered */}
+            {phase === "grounded" && groundedReady && (
               <div className="ml-9 pt-1">
                 <button
                   onClick={showFitSummary}
@@ -401,7 +478,7 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
               </div>
             )}
 
-            {/* Fit Summary */}
+            {/* Fit Summary card */}
             {phase === "summary" && (
               <FitSummaryCard
                 answers={answers}
@@ -421,18 +498,19 @@ export default function MiaPanel({ compact = false }: { compact?: boolean }) {
 
 function IdleState({ onStart }: { onStart: () => void }) {
   return (
-    <div className="flex flex-col justify-between h-full">
-      <div className="space-y-3 pt-1">
-        <MiaBubble text="Most people who land on this page are interested but unsure. I'm here to help you figure out if this is actually a fit — not to sell you." />
+    <div className="flex flex-col h-full">
+      <div className="space-y-3 pt-1 flex-1">
+        <MiaBubble text="Most people who land here are interested but unsure. I'm here to help you figure out if this is actually a fit — not to sell you." />
         <MiaBubble text="4 questions. 2 minutes. Straight answer at the end." />
         <div className="ml-9 flex items-start gap-2 border border-border bg-secondary/40 px-3 py-2.5">
           <AlertCircle size={13} className="text-primary mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground leading-relaxed">
-            If WWA isn&apos;t the right fit, I&apos;ll tell you that too. No pressure. No follow-up unless you ask.
+            If WWA isn&apos;t the right fit, I&apos;ll tell you that too. No pressure. No follow-up
+            unless you ask.
           </p>
         </div>
       </div>
-      <div className="pt-6">
+      <div className="pt-4 pb-1">
         <button
           onClick={onStart}
           className="w-full py-3.5 bg-primary text-primary-foreground font-black tracking-widest uppercase text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
@@ -461,7 +539,11 @@ function FitSummaryCard({
 }) {
   const [, , timeline, concern] = answers
   const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+    intent === "High"
+      ? "text-green-400"
+      : intent === "Medium"
+      ? "text-yellow-400"
+      : "text-muted-foreground"
   const intentBg =
     intent === "High"
       ? "bg-green-500/10 border-green-500/30"
@@ -470,7 +552,7 @@ function FitSummaryCard({
       : "bg-secondary border-border"
 
   return (
-    <div className="ml-2 space-y-3 pt-1">
+    <div className="space-y-3 pt-1">
       <div className="border border-border bg-secondary">
         <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
           <span
@@ -493,7 +575,7 @@ function FitSummaryCard({
             ["All-in tuition", program.tuition],
             ["Your timeline", timeline ?? "—"],
             ["Main concern", concern?.split("—")[0].trim() ?? "—"],
-            ["Recommended next step", "Talk to enrollment this week"],
+            ["Next step", "Talk to enrollment this week"],
           ].map(([label, value]) => (
             <div key={label} className="flex justify-between items-start gap-4 text-xs">
               <span className="text-muted-foreground shrink-0">{label}</span>
@@ -515,11 +597,11 @@ function FitSummaryCard({
           <ChevronRight size={15} />
         </button>
         <button
-          onClick={() => window.open("tel:18005801234")}
+          onClick={() => window.open("tel:18005804173")}
           className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          Call Directly: 1-800-580-1234
+          Call Directly: 1-800-580-4173
         </button>
       </div>
     </div>
@@ -533,52 +615,73 @@ function StudentConfirmation({
   answers,
   program,
   intent,
+  advisorScript,
+  onReset,
+  onViewEnrollment,
 }: {
   lead: LeadData
   answers: string[]
-  program: { name: string }
+  program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
+  advisorScript: string
+  onReset: () => void
+  onViewEnrollment: () => void
 }) {
-  const [, , timeline] = answers
+  const [, experience, timeline, concern] = answers
   const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+    intent === "High"
+      ? "text-green-400"
+      : intent === "Medium"
+      ? "text-yellow-400"
+      : "text-muted-foreground"
 
   return (
-    <>
+    <div className="space-y-4 pb-2">
+      {/* Confirmation header */}
       <div className="flex items-center gap-3 py-3 border-b border-border">
         <div className="w-8 h-8 bg-green-500/15 border border-green-500/40 flex items-center justify-center shrink-0">
           <Check size={15} className="text-green-400" />
         </div>
         <div>
-          <p className="text-sm font-bold text-foreground">{"You're set."}</p>
+          <p
+            className="text-sm font-black tracking-widest uppercase text-foreground"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            {"You're all set."}
+          </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            An advisor will reach out via {lead.contact.toLowerCase()} — {lead.time.toLowerCase()}s.
+            An enrollment advisor will reach out with your fit summary and next steps.
           </p>
         </div>
       </div>
 
+      {/* What Mia sent */}
       <div>
         <p
           className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
         >
-          What we sent to enrollment
+          What Mia sent to enrollment
         </p>
         <div className="border border-border bg-secondary p-3 space-y-2">
           {[
             ["Name", lead.name || "—"],
             ["Intent", { value: intent, className: intentColor }],
             ["Timeline", timeline ?? "—"],
-            ["Program interest", program.name],
+            ["Recommended program", program.name],
+            ["Experience level", experience ?? "—"],
             ["Main concern", answers[3]?.split("—")[0].trim() ?? "—"],
-            ["Contact preference", `${lead.contact} · ${lead.time}s`],
+            ["Preferred contact", lead.contact],
+            ["Best time to reach", `${lead.time}s`],
           ].map(([label, value]) => (
             <div key={label as string} className="flex justify-between items-start gap-4 text-xs">
               <span className="text-muted-foreground shrink-0">{label as string}</span>
               {typeof value === "string" ? (
                 <span className="font-semibold text-foreground text-right">{value}</span>
               ) : (
-                <span className={`font-semibold text-right ${(value as { className: string }).className}`}>
+                <span
+                  className={`font-semibold text-right ${(value as { className: string }).className}`}
+                >
                   {(value as { value: string }).value}
                 </span>
               )}
@@ -587,12 +690,37 @@ function StudentConfirmation({
         </div>
       </div>
 
-      <div className="border border-border p-3 space-y-1">
-        <p className="text-xs text-muted-foreground">Have questions before they reach out?</p>
-        <p className="text-sm font-bold text-foreground">1-800-580-4173</p>
-        <p className="text-xs text-muted-foreground">admissions@westernweldingacademy.com</p>
+      {/* Advisor opener preview */}
+      <div>
+        <p
+          className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground mb-2"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Suggested advisor opener
+        </p>
+        <div className="border border-border bg-secondary/40 px-3 py-2.5">
+          <p className="text-xs text-muted-foreground italic leading-relaxed">{advisorScript}</p>
+        </div>
       </div>
-    </>
+
+      {/* Actions */}
+      <div className="space-y-2 pt-1">
+        <button
+          onClick={onReset}
+          className="w-full py-2.5 border border-border text-xs font-bold tracking-widest uppercase text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          Start Over
+        </button>
+        <button
+          onClick={onViewEnrollment}
+          className="w-full py-2.5 border border-primary text-xs font-bold tracking-widest uppercase text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        >
+          View Enrollment Profile
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -607,13 +735,17 @@ function EnrollmentView({
 }: {
   lead: LeadData
   answers: string[]
-  program: { name: string; duration: string }
+  program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
   advisorScript: string
 }) {
-  const [goal, , timeline] = answers
+  const [goal, experience, timeline] = answers
   const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+    intent === "High"
+      ? "text-green-400"
+      : intent === "Medium"
+      ? "text-yellow-400"
+      : "text-muted-foreground"
   const intentBg =
     intent === "High"
       ? "bg-green-500/10 border-green-500/30"
@@ -622,14 +754,18 @@ function EnrollmentView({
       : "bg-secondary border-border"
 
   return (
-    <>
+    <div className="space-y-4 pb-2">
       {/* Lead header */}
       <div className="flex items-center justify-between pb-3 border-b border-border">
         <div>
           <p className="text-sm font-bold text-foreground">{lead.name || "Anonymous Lead"}</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Mia-qualified ·{" "}
-            {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+            Mia-qualified &middot;{" "}
+            {new Date().toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </p>
         </div>
         <span
@@ -647,6 +783,9 @@ function EnrollmentView({
             Goal: <span className="text-foreground">{goal ?? "—"}</span>
           </p>
           <p>
+            Experience: <span className="text-foreground">{experience ?? "—"}</span>
+          </p>
+          <p>
             Intent:{" "}
             <span className={`font-semibold ${intentColor}`}>{intent}</span>
             {" — "}
@@ -658,10 +797,12 @@ function EnrollmentView({
           </p>
           <p>
             Blocker addressed:{" "}
-            <span className="text-foreground">{answers[3]?.split("—")[0].trim() ?? "—"}</span>
+            <span className="text-foreground">
+              {answers[3]?.split("—")[0].trim() ?? "—"}
+            </span>
           </p>
           <p>
-            Program fit confirmed:{" "}
+            Program fit:{" "}
             <span className="text-foreground font-semibold">{program.name}</span>
           </p>
         </div>
@@ -671,10 +812,11 @@ function EnrollmentView({
       <InfoSection title="Student Snapshot">
         {[
           ["Phone", lead.phone || "—"],
-          ["Email", lead.email || "—"],
+          ["Email", lead.email || "Not provided"],
           ["Contact pref.", `${lead.contact} · ${lead.time}s`],
           ["Timeline", timeline ?? "—"],
           ["Program", program.name],
+          ["Tuition", program.tuition],
           ["Duration", program.duration],
         ].map(([l, v]) => (
           <div key={l} className="flex justify-between items-start gap-4 text-xs">
@@ -690,7 +832,7 @@ function EnrollmentView({
       </InfoSection>
 
       {/* Advisor actions */}
-      <div className="space-y-2 pb-2">
+      <div className="space-y-2">
         <p
           className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
           style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -701,7 +843,7 @@ function EnrollmentView({
           {[
             { Icon: MessageSquare, label: "Text Lead" },
             { Icon: Phone, label: "Call Lead" },
-            { Icon: Mail, label: "Add to Nurture" },
+            { Icon: Mail, label: "Add to CRM" },
           ].map(({ Icon, label }) => (
             <button
               key={label}
@@ -714,7 +856,7 @@ function EnrollmentView({
           ))}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -724,7 +866,7 @@ function PanelShell({ compact, children }: { compact: boolean; children: React.R
   return (
     <div
       className={`flex flex-col bg-card border border-border overflow-hidden ${
-        compact ? "h-[540px]" : "h-[580px]"
+        compact ? "h-[560px]" : "h-[600px]"
       }`}
     >
       {children}
@@ -797,7 +939,7 @@ function StepProgress({
                 }`}
               />
               <span
-                className={`text-[9px] font-bold tracking-widest uppercase truncate ${
+                className={`text-[10px] font-bold tracking-widest uppercase truncate ${
                   isDone || isActive ? "text-primary" : "text-muted-foreground/40"
                 }`}
                 style={{ fontFamily: "var(--font-barlow-condensed)" }}
@@ -814,9 +956,9 @@ function StepProgress({
 
 function FunnelStrip({ funnelIndex }: { funnelIndex: number }) {
   return (
-    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-1 bg-background/20 overflow-x-auto">
+    <div className="px-4 py-2 border-b border-border shrink-0 flex items-center gap-0.5 bg-background/20 overflow-x-auto">
       <span
-        className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground/50 mr-1.5 shrink-0 whitespace-nowrap"
+        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/50 mr-1.5 shrink-0 whitespace-nowrap"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >
         Stage:
@@ -902,7 +1044,7 @@ function InfoSection({ title, children }: { title: string; children: React.React
   return (
     <div className="space-y-1.5">
       <p
-        className="text-[9px] font-bold tracking-widest uppercase text-muted-foreground"
+        className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground"
         style={{ fontFamily: "var(--font-barlow-condensed)" }}
       >
         {title}
