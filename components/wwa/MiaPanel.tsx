@@ -571,7 +571,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setLead({ name: "", phone: "", email: "", contact: "Text", time: "Morning" })
   }
 
-  // ── Handoff screen ────────────────────────────────────────────────────────
+  // ── Handoff screen ──────────────────────────────────────────���─────────────
 
   if (phase === "handoff") {
     const advisorScript = buildAdvisorOpener(answers, lead.name)
@@ -679,8 +679,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                         ? "border-primary text-white"
                         : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
                     }`}
-                    style={lead.contact === opt ? { backgroundColor: "#2563EB" } : { backgroundColor: "#161616" }}
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                    style={{
+                      backgroundColor: lead.contact === opt ? "#2563EB" : "#161616",
+                      fontFamily: "var(--font-barlow-condensed)",
+                    }}
                   >
                     <Icon size={12} />
                     {opt}
@@ -702,8 +704,10 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                       ? "border-primary text-white"
                       : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
                   }`}
-                  style={lead.time === opt ? { backgroundColor: "#2563EB" } : { backgroundColor: "#161616" }}
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  style={{
+                    backgroundColor: lead.time === opt ? "#2563EB" : "#161616",
+                    fontFamily: "var(--font-barlow-condensed)",
+                  }}
                 >
                   {opt}
                 </button>
@@ -737,27 +741,30 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               Enter your name and phone number to continue.
             </p>
           )}
+        </div>
 
-          <div className="flex items-center justify-between border-t border-[#2E2E2E] pt-3 mt-1">
-            <button
-              type="button"
-              onClick={() => setPhase("summary")}
-              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] hover:text-white transition-colors"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              <ChevronLeft size={11} />
-              Edit Answers
-            </button>
-            <button
-              type="button"
-              onClick={resetFlow}
-              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
-            >
-              <RotateCcw size={9} />
-              Start Over
-            </button>
-          </div>
+        {/* Sticky nav bar — Back (Edit Answers) + Start Over */}
+        <div
+          className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
+          style={{ backgroundColor: "#0F0F0F" }}
+        >
+          <button
+            type="button"
+            onClick={() => setPhase("summary")}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            <ChevronLeft size={12} />
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={resetFlow}
+            className="text-[11px] font-bold tracking-widest uppercase transition-colors text-[#2563EB] hover:text-[#60a5fa] focus-visible:outline-none focus-visible:text-[#60a5fa]"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Start Over
+          </button>
         </div>
       </PanelShell>
     )
@@ -802,28 +809,6 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                     {opt}
                   </button>
                 ))}
-                <div className="flex items-center gap-3 pt-1 mt-1 border-t border-[#2E2E2E]">
-                  {stepIndex > 0 ? (
-                    <button
-                      type="button"
-                      onClick={goBackOneStep}
-                      className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] hover:text-white transition-colors"
-                      style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                    >
-                      <ChevronLeft size={11} />
-                      Back
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={resetFlow}
-                    className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors ml-auto"
-                    style={{ fontFamily: "var(--font-barlow-condensed)" }}
-                  >
-                    <RotateCcw size={9} />
-                    Start Over
-                  </button>
-                </div>
               </div>
             )}
 
@@ -856,6 +841,40 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           </>
         )}
       </div>
+
+      {/* Back / Start Over nav bar — sticky at the bottom of the guided flow */}
+      {(phase === "flow" || phase === "grounded") && (
+        <div
+          className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
+          style={{ backgroundColor: "#0F0F0F" }}
+        >
+          {/* Back — rounded outline button, white border + text */}
+          {phase === "flow" && stepIndex > 0 ? (
+            <button
+              type="button"
+              onClick={goBackOneStep}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
+              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            >
+              <ChevronLeft size={12} />
+              Back
+            </button>
+          ) : (
+            /* Placeholder keeps Start Over from jumping to the left */
+            <span />
+          )}
+
+          {/* Start Over — plain blue text link */}
+          <button
+            type="button"
+            onClick={resetFlow}
+            className="text-[11px] font-bold tracking-widest uppercase transition-colors text-[#2563EB] hover:text-[#60a5fa] focus-visible:outline-none focus-visible:text-[#60a5fa]"
+            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          >
+            Start Over
+          </button>
+        </div>
+      )}
 
       {/* Freeform "Ask Mia" input — shown during flow and grounded phases only */}
       {(phase === "flow" || phase === "grounded") && (
