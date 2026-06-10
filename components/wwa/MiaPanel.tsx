@@ -574,7 +574,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
     }, 1800)
   }
 
-  // ── Freeform "Ask Mia" ─────────────────────────────────────────────────────
+  // ── Freeform "Ask Mia" ─────────────���───────────────────────────────────────
 
   function matchFreeInput(q: string): string {
     const t = q.toLowerCase()
@@ -1520,13 +1520,10 @@ function StudentConfirmation({
           className="text-base font-bold tracking-wide uppercase text-[#111111] leading-tight"
           style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
-          {"You're all set."}
+          YOU&apos;RE ALL SET.
         </h2>
         <p className="text-xs text-[#666666] mt-1.5 leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
           {"We've sent your fit summary and details to an enrollment advisor."}
-        </p>
-        <p className="text-[11px] text-[#2563EB] mt-1.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-          Advisor handoff prepared. Enrollment follow-up queued.
         </p>
       </div>
 
