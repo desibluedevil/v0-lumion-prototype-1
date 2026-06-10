@@ -240,6 +240,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   const [groundedReady, setGroundedReady] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [footerInterstitial, setFooterInterstitial] = useState<null | "call" | "text">(null)
+  const [footerBypassed, setFooterBypassed] = useState(false)
   const [freeInput, setFreeInput] = useState("")
   const [freeAnswering, setFreeAnswering] = useState(false)
   // Tracks the option the user just tapped so we can flash a blue highlight before transitioning
@@ -551,6 +552,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
 
   function goBackToGrounded() {
     setFooterInterstitial(null)
+    setFooterBypassed(false)
     // Remove the last user message ("Yes — show me the summary") and return to grounded
     setMessages((prev) => prev.filter((m) => m.text !== "Yes — show me the summary"))
     setPhase("grounded")
@@ -574,7 +576,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
     }, 1800)
   }
 
-  // ── Freeform "Ask Mia" ─────────────���───────────────────────────────────────
+  // ── Freeform "Ask Mia" ─────────────�����───────────────────────────────────────
 
   function matchFreeInput(q: string): string {
     const t = q.toLowerCase()
@@ -631,6 +633,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
   function resetFlow() {
     gen.current++ // cancel any pending setTimeout callbacks from the previous flow
     setFooterInterstitial(null)
+    setFooterBypassed(false)
     setPhase("idle")
     setStepIndex(0)
     setAnswers([])
@@ -1038,7 +1041,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
                 href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
                   "Hi, I'm interested in Western Welding Academy and want to ask about enrollment."
                 )}`}
-                onClick={() => setFooterInterstitial(null)}
+                onClick={() => { setFooterInterstitial(null); setFooterBypassed(true) }}
                 className="w-full py-2 border border-[#D0D0D0] text-[#444444] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 hover:border-[#111111] hover:text-[#111111] transition-colors"
                 style={{ fontFamily: "var(--font-inter), sans-serif" }}
               >
@@ -1047,7 +1050,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
             ) : (
               <a
                 href={`tel:+${WWA_PHONE}`}
-                onClick={() => setFooterInterstitial(null)}
+                onClick={() => { setFooterInterstitial(null); setFooterBypassed(true) }}
                 className="w-full py-2 border border-[#D0D0D0] text-[#444444] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 hover:border-[#111111] hover:text-[#111111] transition-colors"
                 style={{ fontFamily: "var(--font-inter), sans-serif" }}
               >
@@ -1074,7 +1077,11 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
           className="shrink-0 flex items-center gap-2 px-4 py-2 border-t border-[#F0F0F0] bg-white"
           style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
-          <span className="text-[11px] text-[#888888] mr-auto">Need help now?</span>
+          {footerBypassed ? (
+            <span className="text-[11px] text-[#888888] mr-auto">Opening direct contact without sending your fit summary.</span>
+          ) : (
+            <span className="text-[11px] text-[#888888] mr-auto">Need help now?</span>
+          )}
           {phase === "summary" ? (
             <>
               <button
@@ -1527,7 +1534,7 @@ function StudentConfirmation({
         </p>
       </div>
 
-      {/* ── WANT THE FASTEST RESPONSE? ────────────────────────────── */}
+      {/* ── WANT THE FASTEST RESPONSE? ──────────────────────���─────── */}
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <div className="px-4 pt-4 pb-4 space-y-3">
           <div>
