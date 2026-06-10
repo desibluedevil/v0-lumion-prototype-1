@@ -1431,6 +1431,68 @@ function StudentConfirmation({
         </p>
       </div>
 
+      {/* ── WANT TO MOVE FASTER? ──────────────────────────────────── */}
+      <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
+        <div className="px-4 pt-3.5 pb-1">
+          <p
+            className="text-sm font-bold text-[#111111] mb-1"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Want to move faster?
+          </p>
+          <p
+            className="text-[11px] text-[#888888] leading-snug mb-3"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Call or text enrollment now. Your fit summary is ready, so you know what to ask.
+          </p>
+
+          <div className="space-y-2 pb-3.5">
+            {/* Text Enrollment */}
+            <a
+              href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
+                `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
+                  concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
+                }.`
+              )}`}
+              className="w-full py-2.5 border-2 border-[#111111] rounded-2xl text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
+            >
+              <MessageSquare size={14} />
+              Text Enrollment
+            </a>
+
+            {/* Call Enrollment */}
+            <a
+              href={`tel:+${WWA_PHONE}`}
+              className="w-full py-2.5 border-2 border-[#111111] rounded-2xl text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
+            >
+              <Phone size={14} />
+              Call Enrollment
+            </a>
+
+            {/* View What Mia Sent — opens the enrollment profile */}
+            <button
+              type="button"
+              onClick={() => {
+                // Scroll to the profile accordion and open it
+                const el = document.getElementById("wwa-enrollment-profile")
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" })
+                  el.click()
+                }
+              }}
+              className="w-full py-2.5 border border-[#E5E5E5] rounded-2xl text-xs font-semibold text-[#666666] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center gap-2"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
+            >
+              <User size={13} />
+              View What Mia Sent
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <div className="px-4 py-2.5 border-b border-[#E5E5E5] bg-[#F8F8F8]">
@@ -1457,6 +1519,7 @@ function StudentConfirmation({
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <button
           type="button"
+          id="wwa-enrollment-profile"
           onClick={() => setProfileOpen((v) => !v)}
           className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-[#F8F8F8] transition-all bg-white"
           aria-expanded={profileOpen}
