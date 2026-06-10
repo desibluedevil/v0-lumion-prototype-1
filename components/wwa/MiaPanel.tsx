@@ -1451,14 +1451,9 @@ function FitSummaryCard({
             </div>
           )}
 
-          {callClicked && !interstitial && (
-            <p className="text-[11px] text-[#2563EB] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Call started. Advisor context is prepared.
-            </p>
-          )}
-          {textClicked && !interstitial && (
-            <p className="text-[11px] text-[#2563EB] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Text opened. Mia&apos;s fit summary is ready for enrollment.
+          {(callClicked || textClicked) && !interstitial && (
+            <p className="text-[11px] text-[#888888] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Opening direct contact without sending your fit summary.
             </p>
           )}
         </div>
@@ -1520,7 +1515,7 @@ function StudentConfirmation({
   return (
     <div className="space-y-4 pb-4">
 
-      {/* ── YOU'RE ALL SET ────────────────────────────────────────── */}
+      {/* ── YOU'RE ALL SET ────────���───────────────────────────────── */}
       <div className="pt-1">
         <h2
           className="text-base font-bold tracking-wide uppercase text-[#111111] leading-tight"
@@ -1532,7 +1527,7 @@ function StudentConfirmation({
           {"We've sent your fit summary and details to an enrollment advisor."}
         </p>
         <p className="text-[11px] text-[#2563EB] mt-1.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-          Advisor handoff prepared.
+          Advisor handoff prepared. Enrollment follow-up queued.
         </p>
       </div>
 
@@ -1570,7 +1565,7 @@ function StudentConfirmation({
           </a>
           {textClicked && (
             <p className="text-[11px] text-[#2563EB] -mt-1 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Text opened. Mia&apos;s fit summary is ready for enrollment.
+              Your fit summary is ready for enrollment.
             </p>
           )}
 
@@ -1586,7 +1581,7 @@ function StudentConfirmation({
           </a>
           {callClicked && (
             <p className="text-[11px] text-[#2563EB] -mt-1 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Call started. Advisor context is prepared.
+              Your fit summary is ready for enrollment.
             </p>
           )}
 
