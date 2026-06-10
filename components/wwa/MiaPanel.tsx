@@ -1313,68 +1313,75 @@ function FitSummaryCard({
       </p>
 
       {/* CTAs */}
-      <div className="space-y-2.5 pt-1 border-t border-[#E5E5E5]">
-        {/* "Want the fastest answer?" section */}
+      <div className="space-y-3 pt-1 border-t border-[#E5E5E5]">
         <div className="pt-2">
           <p
             className="text-sm font-bold text-[#111111] mb-0.5"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Want the fastest answer?
+            Ready to talk to enrollment?
           </p>
           <p
-            className="text-[11px] text-[#888888] leading-snug mb-2.5"
+            className="text-[11px] text-[#888888] leading-snug mb-3"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Call or text enrollment now. Mia has your fit summary ready.
+            Send your fit summary first so the advisor knows your goal, timeline, and main concern.
           </p>
 
-          {/* Text Enrollment — strong secondary */}
-          <a
-            href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
-              `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
-                concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
-              }.`
-            )}`}
-            onClick={() => setTextClicked(true)}
-            className="w-full py-2.5 mb-1 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
-          >
-            <MessageSquare size={15} />
-            Text Enrollment
-          </a>
-          {textClicked && (
-            <p className="text-[11px] text-[#2563EB] mb-2 pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Text opened. Mia&apos;s fit summary is ready for enrollment.
-            </p>
-          )}
-
-          {/* Call Directly — strong secondary */}
-          <a
-            href={`tel:+${WWA_PHONE}`}
-            onClick={() => setCallClicked(true)}
-            className="w-full py-2.5 mb-1 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
-          >
-            <Phone size={15} />
-            Call Directly
-          </a>
-          {callClicked && (
-            <p className="text-[11px] text-[#2563EB] mb-2 pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Call started. Advisor context is prepared.
-            </p>
-          )}
-
-          {/* Connect Me With Enrollment — primary */}
+          {/* Primary CTA */}
           <button
             type="button"
             onClick={onCapture}
-            className="w-full py-3 font-bold text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl"
+            className="w-full py-3 font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl mb-3"
             style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Connect Me With Enrollment
+            Send My Fit Summary
             <ChevronRight size={15} />
           </button>
+
+          {/* Secondary utility row */}
+          <div className="flex items-center gap-2">
+            <span
+              className="text-[11px] text-[#888888] mr-auto"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
+            >
+              Need help now?
+            </span>
+            <a
+              href={`tel:+${WWA_PHONE}`}
+              onClick={() => setCallClicked(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
+              aria-label={`Call WWA at ${WWA_PHONE_DISPLAY}`}
+            >
+              <Phone size={11} />
+              Call
+            </a>
+            <a
+              href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
+                `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
+                  concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
+                }.`
+              )}`}
+              onClick={() => setTextClicked(true)}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
+              aria-label={`Text WWA at ${WWA_PHONE_DISPLAY}`}
+            >
+              <MessageSquare size={11} />
+              Text
+            </a>
+          </div>
+          {callClicked && (
+            <p className="text-[11px] text-[#2563EB] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Call started. Advisor context is prepared.
+            </p>
+          )}
+          {textClicked && (
+            <p className="text-[11px] text-[#2563EB] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Text opened. Mia&apos;s fit summary is ready for enrollment.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -1799,12 +1806,12 @@ function EnrollmentView({
         <p className="text-xs text-[#111111] font-semibold leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{nextAction}</p>
       </div>
 
-      {/* ── 6. Suggested Advisor Opener ───────────────────────────── */}
+      {/* ��─ 6. Suggested Advisor Opener ───────────────────────────── */}
       <InfoSection title="Suggested Advisor Opener">
         <p className="text-xs text-[#444444] italic leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{advisorScript}</p>
       </InfoSection>
 
-      {/* ── Actions ───────────────────────────────────────────────── */}
+      {/* ── Actions ─────────────────────────────────────────────���─── */}
       <div className="space-y-2 pt-1">
         <p
           className="text-[10px] font-semibold tracking-wider uppercase text-[#888888]"
