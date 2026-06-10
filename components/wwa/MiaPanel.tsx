@@ -1203,6 +1203,8 @@ function FitSummaryCard({
   onBack: () => void
   onReset: () => void
 }) {
+  const [textClicked, setTextClicked] = useState(false)
+  const [callClicked, setCallClicked] = useState(false)
   const [goal, experience, timeline, concern] = answers
   const bullets = whyBullets(answers)
   const questions = suggestedQuestions(concern)
@@ -1334,22 +1336,34 @@ function FitSummaryCard({
                 concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
               }.`
             )}`}
-            className="w-full py-2.5 mb-2 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
+            onClick={() => setTextClicked(true)}
+            className="w-full py-2.5 mb-1 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             <MessageSquare size={15} />
             Text Enrollment
           </a>
+          {textClicked && (
+            <p className="text-[11px] text-[#2563EB] mb-2 pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Text opened. Mia&apos;s fit summary is ready for enrollment.
+            </p>
+          )}
 
           {/* Call Directly — strong secondary */}
           <a
             href={`tel:+${WWA_PHONE}`}
-            className="w-full py-2.5 mb-2 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
+            onClick={() => setCallClicked(true)}
+            className="w-full py-2.5 mb-1 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             <Phone size={15} />
             Call Directly
           </a>
+          {callClicked && (
+            <p className="text-[11px] text-[#2563EB] mb-2 pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Call started. Advisor context is prepared.
+            </p>
+          )}
 
           {/* Connect Me With Enrollment — primary */}
           <button
@@ -1405,6 +1419,8 @@ function StudentConfirmation({
   onClose?: () => void
 }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const [textClicked, setTextClicked] = useState(false)
+  const [callClicked, setCallClicked] = useState(false)
   const [, experience, timeline, concern] = answers
 
   const MIA_RECEIPTS = [
@@ -1426,9 +1442,12 @@ function StudentConfirmation({
         >
           {"You're all set."}
         </h2>
-        <p className="text-xs text-[#666666] mt-1.5 leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-          {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
-        </p>
+  <p className="text-xs text-[#666666] mt-1.5 leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+  {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
+  </p>
+  <p className="text-[11px] text-[#2563EB] mt-2" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+    Advisor handoff prepared.
+  </p>
       </div>
 
       {/* ── WANT TO MOVE FASTER? ──────────────────────────────────── */}
@@ -1455,22 +1474,34 @@ function StudentConfirmation({
                   concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
                 }.`
               )}`}
+              onClick={() => setTextClicked(true)}
               className="w-full py-2.5 border-2 border-[#111111] rounded-2xl text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2"
               style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               <MessageSquare size={14} />
               Text Enrollment
             </a>
+            {textClicked && (
+              <p className="text-[11px] text-[#2563EB] pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+                Text opened. Mia&apos;s fit summary is ready for enrollment.
+              </p>
+            )}
 
             {/* Call Enrollment */}
             <a
               href={`tel:+${WWA_PHONE}`}
+              onClick={() => setCallClicked(true)}
               className="w-full py-2.5 border-2 border-[#111111] rounded-2xl text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2"
               style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               <Phone size={14} />
               Call Enrollment
             </a>
+            {callClicked && (
+              <p className="text-[11px] text-[#2563EB] pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+                Call started. Advisor context is prepared.
+              </p>
+            )}
 
             {/* View What Mia Sent — opens the enrollment profile */}
             <button
