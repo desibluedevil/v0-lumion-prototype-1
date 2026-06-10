@@ -72,7 +72,7 @@ function FloatingMia() {
       <button
         type="button"
         onClick={() => setMobileOpen((v) => !v)}
-        className="lg:hidden fixed bottom-5 right-5 z-50 w-14 h-14 bg-primary text-primary-foreground flex items-center justify-center shadow-lg"
+        className="lg:hidden fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-xl"
         aria-label={mobileOpen ? "Close Mia panel" : "Open Mia fit check"}
       >
         {mobileOpen ? <X size={22} /> : <MessageSquare size={22} />}

@@ -516,12 +516,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     }
   }
 
-  function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behavior: ScrollBehavior = "smooth") {
-    const container = scrollRef.current
-    const anchor = anchorRef.current
-    if (!container || !anchor) return
-    const anchorTop = anchor.offsetTop
-    container.scrollTo({ top: anchorTop, behavior })
+function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behavior: ScrollBehavior = "smooth", offsetPx = 0) {
+  const container = scrollRef.current
+  const anchor = anchorRef.current
+  if (!container || !anchor) return
+  const anchorTop = Math.max(0, anchor.offsetTop - offsetPx)
+  container.scrollTo({ top: anchorTop, behavior })
   }
 
   function scrollToBottom(behavior: ScrollBehavior = "smooth") {
@@ -534,11 +534,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
-    // Scroll to the "Yes — show me the summary" anchor so "Your Answers" renders
-    // at the top of the visible area. User can scroll down to see the full card.
+    // Double rAF lets React paint the FitSummaryCard before we measure offsets.
+    // Scroll to the "Yes — show me the summary" anchor so the card title ("Your Fit Summary")
+    // is the first thing visible in the scroll area.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        scrollToAnchor(summaryAnchorRef)
+        // Offset by 8px so the "Your Fit Summary" heading is fully in view
+        scrollToAnchor(summaryAnchorRef, "smooth", 8)
       })
     })
   }
@@ -641,9 +643,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     const conversationSummary = buildConversationSummary(answers, program)
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} onClose={onClose} />
-        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
+        <PanelHeader onReset={resetFlow} onClose={onClose} phase="handoff" />
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 bg-white">
           <StudentConfirmation
             lead={lead}
             answers={answers}
@@ -664,9 +665,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
   if (phase === "capture") {
     return (
       <PanelShell compact={compact}>
-        <PanelHeader onReset={resetFlow} onClose={onClose} />
-        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
+        <PanelHeader onReset={resetFlow} onClose={onClose} phase="capture" />
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 bg-white">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
 
           <Field label="First name" required>
@@ -677,8 +677,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setLead((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="Your name"
               autoComplete="given-name"
-              className="w-full border border-[#2E2E2E] px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors"
-              style={{ backgroundColor: "#1A1A1A" }}
+              className="w-full border border-[#E5E5E5] rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder:text-[#AAAAAA] focus:outline-none focus:border-[#2563EB] transition-colors bg-white"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             />
           </Field>
 
@@ -689,9 +689,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               inputMode="numeric"
               value={lead.phone}
               onChange={(e) => {
-                // Strip everything that isn't a digit
                 const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
-                // Format as (###) ###-####
                 let formatted = ""
                 if (digits.length <= 3) {
                   formatted = digits.length ? `(${digits}` : ""
@@ -704,13 +702,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               }}
               placeholder="(555) 000-0000"
               autoComplete="tel"
-              className={`w-full border px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none transition-colors ${
-                phonePartial ? "border-red-500/70 focus:border-red-500" : "border-[#2E2E2E] focus:border-primary"
+              className={`w-full border rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder:text-[#AAAAAA] focus:outline-none transition-colors bg-white ${
+                phonePartial ? "border-red-400 focus:border-red-500" : "border-[#E5E5E5] focus:border-[#2563EB]"
               }`}
-              style={{ backgroundColor: "#1A1A1A" }}
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             />
             {phonePartial && (
-              <p className="text-[10px] text-red-400 mt-1">
+              <p className="text-[10px] text-red-500 mt-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
                 Enter a complete 10-digit phone number.
               </p>
             )}
@@ -724,8 +722,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               onChange={(e) => setLead((prev) => ({ ...prev, email: e.target.value }))}
               placeholder="you@email.com"
               autoComplete="email"
-              className="w-full border border-[#2E2E2E] px-3 py-2.5 text-sm text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors"
-              style={{ backgroundColor: "#1A1A1A" }}
+              className="w-full border border-[#E5E5E5] rounded-xl px-3 py-2.5 text-sm text-[#111111] placeholder:text-[#AAAAAA] focus:outline-none focus:border-[#2563EB] transition-colors bg-white"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             />
           </Field>
 
@@ -738,15 +736,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                     key={opt}
                     type="button"
                     onClick={() => setLead((prev) => ({ ...prev, contact: opt }))}
-                    className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase flex items-center justify-center gap-1.5 transition-colors ${
+                    className={`flex-1 py-2 border rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
                       lead.contact === opt
-                        ? "border-primary text-white"
-                        : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
+                        ? "border-[#2563EB] bg-[#2563EB] text-white"
+                        : "border-[#E5E5E5] text-[#666666] hover:border-[#111] hover:text-[#111] bg-white"
                     }`}
-                    style={{
-                      backgroundColor: lead.contact === opt ? "#2563EB" : "#161616",
-                      fontFamily: "var(--font-barlow-condensed)",
-                    }}
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
                   >
                     <Icon size={12} />
                     {opt}
@@ -763,15 +758,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                   key={opt}
                   type="button"
                   onClick={() => setLead((prev) => ({ ...prev, time: opt }))}
-                  className={`flex-1 py-2 border text-xs font-bold tracking-wider uppercase transition-colors ${
+                  className={`flex-1 py-2 border rounded-xl text-xs font-semibold transition-colors ${
                     lead.time === opt
-                      ? "border-primary text-white"
-                      : "border-[#2E2E2E] text-[#B0B0B0] hover:border-white hover:text-white"
+                      ? "border-[#2563EB] bg-[#2563EB] text-white"
+                      : "border-[#E5E5E5] text-[#666666] hover:border-[#111] hover:text-[#111] bg-white"
                   }`}
-                  style={{
-                    backgroundColor: lead.time === opt ? "#2563EB" : "#161616",
-                    fontFamily: "var(--font-barlow-condensed)",
-                  }}
+                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
                 >
                   {opt}
                 </button>
@@ -779,12 +771,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             </div>
           </Field>
 
-          {/* Helper text — always visible before submit */}
-          <div className="border border-[#2E2E2E] px-3 py-2.5 space-y-1" style={{ backgroundColor: "#161616" }}>
-            <p className="text-[11px] text-[#B0B0B0] leading-relaxed">
+          {/* Helper text */}
+          <div className="border border-[#E5E5E5] rounded-xl px-3 py-2.5 space-y-1 bg-[#F8F8F8]">
+            <p className="text-[11px] text-[#666666] leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
               Your answers help the advisor understand your goals before they reach out.
             </p>
-            <p className="text-[10px] text-[#B0B0B0]/70">
+            <p className="text-[10px] text-[#AAAAAA]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
               {"We'll only use this to follow up about WWA programs. No spam."}
             </p>
           </div>
@@ -793,30 +785,27 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3.5 font-black tracking-widest uppercase text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110"
-            style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
+            className="w-full py-3.5 font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110 rounded-2xl"
+            style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
             Connect Me With Enrollment
             <ChevronRight size={15} />
           </button>
 
           {!canSubmit && (
-            <p className="text-center text-[10px] text-[#B0B0B0]/60">
+            <p className="text-center text-[10px] text-[#AAAAAA]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
               Enter your name and phone number to continue.
             </p>
           )}
         </div>
 
         {/* Sticky nav bar — Back (Edit Answers) + Start Over */}
-        <div
-          className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
-          style={{ backgroundColor: "#0F0F0F" }}
-        >
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-2.5 border-t border-[#E5E5E5] bg-white">
           <button
             type="button"
             onClick={() => setPhase("summary")}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="flex items-center gap-1 px-3.5 py-1.5 rounded-full border border-[#CCCCCC] text-[#444444] text-[11px] font-semibold transition-colors hover:border-[#2563EB] hover:text-[#2563EB] focus-visible:outline-none"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             <ChevronLeft size={12} />
             Back
@@ -824,8 +813,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           <button
             type="button"
             onClick={resetFlow}
-            className="text-[11px] font-bold tracking-widest uppercase transition-colors text-[#2563EB] hover:text-[#60a5fa] focus-visible:outline-none focus-visible:text-[#60a5fa]"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="text-[11px] font-semibold transition-colors text-[#2563EB] hover:text-[#1d4ed8] focus-visible:outline-none"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             Start Over
           </button>
@@ -841,31 +830,36 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
   return (
     <PanelShell compact={compact}>
-      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} />
+      <PanelHeader onReset={phase !== "idle" ? resetFlow : undefined} onClose={onClose} phase={phase} />
       <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white">
         {phase === "idle" ? (
           <>
             <IdleState onStart={startFlow} programContext={programContext} />
             {/* Freeform Q&A messages accumulate below the IdleState CTA so they
                 are naturally at the bottom of the scroll area — MutationObserver
                 auto-scrolls to show them as they arrive. */}
-            {messages.length > 0 && messages.map((msg, i) =>
-              msg.role === "mia" ? (
-                <MiaBubble key={i} text={msg.text} />
+            {messages.length > 0 && messages.map((msg, i) => {
+              // Skip "status" pills when deciding whether this is the last in a run of same-role messages
+              const nextNonStatus = messages.slice(i + 1).find((m) => m.role !== "status")
+              const isLast = !nextNonStatus || nextNonStatus.role !== msg.role
+              return msg.role === "mia" ? (
+                <MiaBubble key={i} text={msg.text} isLast={isLast} />
               ) : msg.role === "status" ? (
                 <StatusPill key={i} text={msg.text} />
               ) : (
-                <UserBubble key={i} text={msg.text} />
+                <UserBubble key={i} text={msg.text} isLast={isLast} />
               )
-            )}
+            })}
           </>
         ) : (
           <>
-            {messages.map((msg, i) =>
-              msg.role === "mia" ? (
-                <MiaBubble key={i} text={msg.text} />
+            {messages.map((msg, i) => {
+              const nextNonStatus = messages.slice(i + 1).find((m) => m.role !== "status")
+              const isLast = !nextNonStatus || nextNonStatus.role !== msg.role
+              return msg.role === "mia" ? (
+                <MiaBubble key={i} text={msg.text} isLast={isLast} />
               ) : msg.role === "status" ? (
                 <StatusPill key={i} text={msg.text} />
               ) : (
@@ -874,14 +868,14 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                   {msg.text === "Yes — show me the summary" && (
                     <div ref={summaryAnchorRef} aria-hidden="true" className="h-0" />
                   )}
-                  <UserBubble text={msg.text} />
+                  <UserBubble text={msg.text} isLast={isLast} />
                 </div>
               )
-            )}
+            })}
 
             {/* Step option chips */}
             {phase === "flow" && optionsVisible && stepIndex < STEPS.length && (
-              <div className="ml-9 space-y-1.5 pt-1">
+              <div className="ml-10 space-y-2 pt-1">
                 {STEPS[stepIndex].options.map((opt, idx) => {
                   const isSelected = selectedOption === opt
                   return (
@@ -890,11 +884,11 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                       ref={idx === 0 ? firstOptionRef : undefined}
                       type="button"
                       onClick={() => handleOption(opt)}
-                      className="w-full text-left px-4 py-2.5 border text-sm transition-all duration-300 focus-visible:outline-none focus-visible:border-primary focus-visible:text-white"
+                      className="w-full text-left px-4 py-2.5 rounded-2xl text-sm transition-all duration-300 focus-visible:outline-none"
                       style={{
-                        backgroundColor: isSelected ? "#2563EB" : "#161616",
-                        borderColor: isSelected ? "#2563EB" : "#3A3A3A",
-                        color: isSelected ? "#FFFFFF" : "#B0B0B0",
+                        backgroundColor: isSelected ? "#2563EB" : "#111111",
+                        color: "#FFFFFF",
+                        fontFamily: "var(--font-inter), sans-serif",
                       }}
                     >
                       {opt}
@@ -906,12 +900,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
             {/* Grounded → See Fit Summary CTA */}
             {phase === "grounded" && groundedReady && (
-              <div className="ml-9 pt-2 border-t border-[#2E2E2E]">
+              <div className="ml-10 pt-2 border-t border-[#E5E5E5]">
                 <button
                   type="button"
                   onClick={showFitSummary}
-                  className="w-full py-3 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
-                  style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
+                  className="w-full py-3 font-bold text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl"
+                  style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-inter), sans-serif" }}
                 >
                   See My Fit Summary
                   <ChevronRight size={15} />
@@ -939,23 +933,39 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
       {/* Back / Start Over nav bar — sticky at the bottom of the guided flow */}
       {(phase === "flow" || phase === "grounded" || phase === "summary") && (
-        <div
-          className="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-t border-[#2E2E2E]"
-          style={{ backgroundColor: "#0F0F0F" }}
-        >
-          {/* Back — rounded outline button, white border + text */}
-          {(phase === "flow" && stepIndex > 0) || phase === "summary" ? (
+        <div className="shrink-0 flex items-center justify-between gap-3 px-5 py-2.5 border-t border-[#E5E5E5] bg-white">
+          {/* Back — rounded outline button */}
+          {(phase === "flow" && stepIndex > 0) || phase === "grounded" || phase === "summary" ? (
             <button
               type="button"
-              onClick={phase === "summary" ? goBackToGrounded : goBackOneStep}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-white/80 text-white text-[11px] font-bold tracking-widest uppercase transition-colors hover:bg-[#2563EB]/20 hover:border-[#2563EB] focus-visible:bg-[#2563EB]/20 focus-visible:outline-none"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              onClick={
+                phase === "summary"
+                  ? goBackToGrounded
+                  : phase === "grounded"
+                  ? () => {
+                      // From grounded, go back to the last flow step (concern question)
+                      const prevAnswers = answers.slice(0, 3)
+                      setMessages((prev) => {
+                        // Remove everything after the last flow question (concern), which is the user's answer + status pill + Mia's grounded response(s)
+                        const lastFlowQ = [...prev].reverse().findIndex((m) => m.role === "mia" && m.text === STEPS[3].question)
+                        const cutIdx = lastFlowQ >= 0 ? prev.length - lastFlowQ : prev.length - 2
+                        return prev.slice(0, cutIdx)
+                      })
+                      setAnswers(prevAnswers)
+                      setStepIndex(3)
+                      setPhase("flow")
+                      setGroundedReady(false)
+                      setOptionsVisible(true)
+                    }
+                  : goBackOneStep
+              }
+              className="flex items-center gap-1 px-3.5 py-1.5 rounded-full border border-[#CCCCCC] text-[#444444] text-[11px] font-semibold transition-colors hover:border-[#2563EB] hover:text-[#2563EB] focus-visible:outline-none"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               <ChevronLeft size={12} />
               Back
             </button>
           ) : (
-            /* Placeholder keeps Start Over from jumping to the left */
             <span />
           )}
 
@@ -963,39 +973,60 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
           <button
             type="button"
             onClick={resetFlow}
-            className="text-[11px] font-bold tracking-widest uppercase transition-colors text-[#2563EB] hover:text-[#60a5fa] focus-visible:outline-none focus-visible:text-[#60a5fa]"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="text-[11px] font-semibold transition-colors text-[#2563EB] hover:text-[#1d4ed8] focus-visible:outline-none"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             Start Over
           </button>
         </div>
       )}
 
+      {/* Minimal Lumion footer on summary screen */}
+      {phase === "summary" && (
+        <div className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-2 border-t border-[#E5E5E5] bg-white">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M2 8h4M2 12h20M2 16h4M8 4l-4 16M16 4l4 16" stroke="#AAAAAA" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span className="text-[10px] text-[#AAAAAA]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+            Powered by Lumion
+          </span>
+        </div>
+      )}
+
       {/* Freeform "Ask Mia" input — shown on idle, flow, and grounded phases */}
       {(phase === "idle" || phase === "flow" || phase === "grounded") && (
-        <div className="px-5 pb-4 pt-2.5 border-t border-[#2E2E2E]" style={{ backgroundColor: "#0F0F0F" }}>
+        <div className="px-4 pt-3 pb-2 border-t border-[#E5E5E5] bg-white">
           <form
             onSubmit={(e) => { e.preventDefault(); handleFreeInput() }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 bg-[#F5F5F5] rounded-full px-4 py-2"
           >
             <input
               type="text"
               value={freeInput}
               onChange={(e) => setFreeInput(e.target.value)}
-              placeholder="Ask Mia about cost, housing, experience, jobs, or programs…"
+              placeholder={phase === "idle" ? "Ask Mia a question..." : "Ask a follow-up question..."}
               disabled={freeAnswering}
-              className="flex-1 min-w-0 border border-[#2E2E2E] px-3 py-2 text-xs text-white placeholder:text-[#B0B0B0]/60 focus:outline-none focus:border-primary transition-colors disabled:opacity-50"
-              style={{ backgroundColor: "#1A1A1A" }}
+              className="flex-1 min-w-0 bg-transparent text-sm text-[#111111] placeholder:text-[#999999] focus:outline-none disabled:opacity-50"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             />
             <button
               type="submit"
               disabled={!freeInput.trim() || freeAnswering}
               aria-label="Send question to Mia"
-              className="shrink-0 w-8 h-8 flex items-center justify-center border border-[#2E2E2E] text-[#B0B0B0] hover:border-primary hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${freeInput.trim() && !freeAnswering ? "bg-[#2563EB] hover:bg-[#1d4ed8]" : "bg-[#CCCCCC] hover:bg-[#2563EB]"}`}
             >
               <Send size={13} />
             </button>
           </form>
+          {/* Powered by Lumion footer */}
+          <div className="flex items-center justify-center gap-1.5 pt-2 pb-0.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M2 8h4M2 12h20M2 16h4M8 4l-4 16M16 4l4 16" stroke="#AAAAAA" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span className="text-[10px] text-[#AAAAAA]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Powered by Lumion
+            </span>
+          </div>
         </div>
       )}
     </PanelShell>
@@ -1025,14 +1056,14 @@ function IdleState({
       <div className="space-y-3 pt-1">
         {/* Program context label — only shown when launched from a card */}
         {programContext && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/30">
-            <div className="w-1.5 h-1.5 bg-primary rounded-full shrink-0" />
+          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="w-1.5 h-1.5 bg-[#2563EB] rounded-full shrink-0" />
             <p
-              className="text-xs font-bold tracking-wider uppercase text-primary"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              className="text-xs font-semibold text-[#2563EB]"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               {"Checking fit for: "}
-              <span className="text-white">{programContext}</span>
+              <span className="text-[#111111]">{programContext}</span>
             </p>
           </div>
         )}
@@ -1041,12 +1072,12 @@ function IdleState({
         <MiaBubble text="Tell me what you're trying to figure out. I'll check program fit, cost, housing, timeline, and whether an advisor should follow up." />
 
         {/* Mia's Plan card */}
-        <div className="ml-9 border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
-          <div className="px-3 py-2 border-b border-[#2E2E2E] flex items-center gap-2">
-            <Clipboard size={11} className="text-primary shrink-0" />
+        <div className="ml-10 border border-[#E5E5E5] rounded-2xl rounded-tl-md overflow-hidden" style={{ backgroundColor: "#F8F8F8" }}>
+          <div className="px-3 py-2 border-b border-[#E5E5E5] flex items-center gap-2 bg-white">
+            <Clipboard size={11} className="text-[#2563EB] shrink-0" />
             <span
-              className="text-[10px] font-black tracking-widest uppercase text-white"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              className="text-[11px] font-semibold text-[#111111]"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               Mia&apos;s Plan
             </span>
@@ -1055,12 +1086,12 @@ function IdleState({
             {PLAN_STEPS.map(({ n, label }) => (
               <li key={n} className="flex items-start gap-2.5">
                 <span
-                  className="shrink-0 w-4 h-4 flex items-center justify-center border border-[#2E2E2E] text-[9px] font-black text-[#B0B0B0] mt-px"
-                  style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                  className="shrink-0 w-4 h-4 flex items-center justify-center rounded-full bg-[#E5E5E5] text-[9px] font-bold text-[#555555] mt-px"
+                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
                 >
                   {n}
                 </span>
-                <span className="text-xs text-[#B0B0B0] leading-snug">{label}</span>
+                <span className="text-xs text-[#555555] leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{label}</span>
               </li>
             ))}
           </ol>
@@ -1068,17 +1099,17 @@ function IdleState({
       </div>
 
       {/* CTAs */}
-      <div className="pt-4 pb-1 space-y-2 border-t border-[#2E2E2E] mt-4">
+      <div className="pt-3 pb-1 space-y-2 border-t border-[#E5E5E5] mt-3">
         <button
           type="button"
           onClick={onStart}
-          className="w-full py-3.5 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
-          style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full py-3.5 font-bold text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl"
+          style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
         >
           Start Fit Check
           <ChevronRight size={15} />
         </button>
-        <p className="text-center text-[10px] text-[#B0B0B0]/60 leading-relaxed">
+        <p className="text-center text-[10px] text-[#AAAAAA] leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
           No pressure. If WWA is not the right fit, I&apos;ll say that.
         </p>
       </div>
@@ -1160,12 +1191,12 @@ function FitSummaryCard({
       {/* Title + subtitle */}
       <div>
         <h2
-          className="text-sm font-black tracking-widest uppercase text-white"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-sm font-bold text-[#111111]"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           Your Fit Summary
         </h2>
-        <p className="text-[11px] text-[#B0B0B0] mt-0.5 leading-snug">
+        <p className="text-[11px] text-[#888888] mt-0.5 leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
           Based on your goal, experience, timeline, and main concern.
         </p>
       </div>
@@ -1182,8 +1213,8 @@ function FitSummaryCard({
             .filter(([, v]) => Boolean(v))
             .map(([l, v]) => (
               <div key={l} className="flex justify-between items-start gap-3 text-xs">
-                <span className="text-[#B0B0B0] shrink-0">{l}</span>
-                <span className="font-semibold text-white text-right">{v}</span>
+                <span className="text-[#888888] shrink-0" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{l}</span>
+                <span className="font-semibold text-[#111111] text-right" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{v}</span>
               </div>
             ))}
         </div>
@@ -1198,11 +1229,11 @@ function FitSummaryCard({
             ["All-in tuition", program.tuition],
           ].map(([l, v]) => (
             <div key={l} className="flex justify-between items-start gap-3 text-xs">
-              <span className="text-[#B0B0B0] shrink-0">{l}</span>
-              <span className="font-semibold text-white text-right">{v}</span>
+              <span className="text-[#888888] shrink-0" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{l}</span>
+              <span className="font-semibold text-[#111111] text-right" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{v}</span>
             </div>
           ))}
-          <p className="text-[11px] text-[#B0B0B0]/70 leading-snug pt-0.5">
+          <p className="text-[11px] text-[#AAAAAA] leading-snug pt-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
             Starting point is based on your experience level and stated goal.
           </p>
         </div>
@@ -1214,8 +1245,8 @@ function FitSummaryCard({
           <ul className="space-y-1.5">
             {bullets.map((b) => (
               <li key={b} className="flex items-start gap-2 text-xs">
-                <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
-                <span className="text-white leading-snug">{b}</span>
+                <span className="shrink-0 w-1 h-1 rounded-full bg-[#2563EB] mt-1.5" />
+                <span className="text-[#111111] leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{b}</span>
               </li>
             ))}
           </ul>
@@ -1227,37 +1258,37 @@ function FitSummaryCard({
         <ul className="space-y-1.5">
           {questions.map((q) => (
             <li key={q} className="flex items-start gap-2 text-xs">
-              <span className="shrink-0 w-1 h-1 rounded-full bg-[#2E2E2E] mt-1.5" />
-              <span className="text-[#B0B0B0] leading-snug italic">{q}</span>
+              <span className="shrink-0 w-1 h-1 rounded-full bg-[#CCCCCC] mt-1.5" />
+              <span className="text-[#666666] leading-snug italic" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{q}</span>
             </li>
           ))}
         </ul>
       </SummarySection>
 
       {/* Section 4 — Next Step */}
-      <div className="border border-primary/30 bg-primary/5 px-3 py-2.5">
+      <div className="border border-blue-200 bg-blue-50 px-3 py-2.5 rounded-xl">
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-primary mb-1"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-[10px] font-semibold tracking-wider uppercase text-[#2563EB] mb-1"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           Suggested Next Step
         </p>
-        <p className="text-xs text-white font-semibold leading-snug">{nextStepText}</p>
+        <p className="text-xs text-[#111111] font-semibold leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{nextStepText}</p>
       </div>
 
       {/* Guardrail */}
-      <p className="text-[10px] text-[#B0B0B0]/60 leading-relaxed px-0.5">
+      <p className="text-[10px] text-[#AAAAAA] leading-relaxed px-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
         This is a fit check, not an admissions decision.
       </p>
 
       {/* CTAs */}
-      <div className="space-y-2 pt-1 border-t border-[#2E2E2E]">
+      <div className="space-y-2 pt-1 border-t border-[#E5E5E5]">
         <div className="pt-2">
           <button
             type="button"
             onClick={onCapture}
-            className="w-full py-3 font-black tracking-widest uppercase text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110"
-            style={{ backgroundColor: "#2563EB", fontFamily: "var(--font-barlow-condensed)" }}
+            className="w-full py-3 font-bold text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl"
+            style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
             Connect Me With Enrollment
             <ChevronRight size={15} />
@@ -1265,8 +1296,8 @@ function FitSummaryCard({
         </div>
         <a
           href="tel:18005551234"
-          className="w-full py-2.5 border border-[#2E2E2E] text-xs font-bold tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full py-2.5 border border-[#E5E5E5] text-xs font-semibold text-[#666666] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center rounded-2xl"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           Call Directly
         </a>
@@ -1277,11 +1308,11 @@ function FitSummaryCard({
 
 function SummarySection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
-      <div className="px-3 py-2 border-b border-[#2E2E2E]">
+    <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
+      <div className="px-3 py-2 border-b border-[#E5E5E5] bg-[#F8F8F8]">
         <span
-          className="text-[10px] font-black tracking-widest uppercase text-white"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-[10px] font-semibold tracking-wider uppercase text-[#666666]"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           {label}
         </span>
@@ -1291,7 +1322,7 @@ function SummarySection({ label, children }: { label: string; children: React.Re
   )
 }
 
-// ─── Student Confirmation ─────────────────────────────────────────────────────
+// ─── Student Confirmation ───────────────────────��─────────────────────────────
 
 function StudentConfirmation({
   lead,
@@ -1329,22 +1360,22 @@ function StudentConfirmation({
       {/* ── YOU'RE ALL SET ─────────────────────────────────────────── */}
       <div className="pt-1">
         <h2
-          className="text-lg font-black tracking-widest uppercase text-white leading-tight"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-lg font-bold text-[#111111] leading-tight"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           {"You're all set."}
         </h2>
-        <p className="text-xs text-[#B0B0B0] mt-1.5 leading-relaxed">
+        <p className="text-xs text-[#666666] mt-1.5 leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
           {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
         </p>
       </div>
 
       {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
-      <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
-        <div className="px-4 py-2.5 border-b border-[#2E2E2E]">
+      <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
+        <div className="px-4 py-2.5 border-b border-[#E5E5E5] bg-[#F8F8F8]">
           <span
-            className="text-[10px] font-black tracking-widest uppercase text-white"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="text-[10px] font-semibold tracking-wider uppercase text-[#666666]"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             What Mia Did
           </span>
@@ -1352,40 +1383,38 @@ function StudentConfirmation({
         <ul className="px-4 py-3 space-y-2">
           {MIA_RECEIPTS.map((item) => (
             <li key={item} className="flex items-center gap-2.5 text-xs">
-              <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-primary/10 border border-primary/30">
-                <Check size={9} className="text-primary" />
+              <div className="w-4 h-4 flex items-center justify-center shrink-0 bg-green-50 border border-green-300 rounded-full">
+                <Check size={9} className="text-green-600" />
               </div>
-              <span className="text-white">{item}</span>
+              <span className="text-[#111111]" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{item}</span>
             </li>
           ))}
         </ul>
       </div>
 
       {/* ── WHAT THE ADVISOR WILL SEE ─────────────────────────────── */}
-      <div className="border border-[#2E2E2E]" style={{ backgroundColor: "#161616" }}>
+      <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <button
           type="button"
           onClick={() => setProfileOpen((v) => !v)}
-          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:brightness-110 transition-all"
-          style={{ backgroundColor: "#161616" }}
+          className="w-full px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-[#F8F8F8] transition-all bg-white"
           aria-expanded={profileOpen}
         >
           <div className="flex items-center gap-2">
-            <User size={11} className="text-[#B0B0B0] shrink-0" />
+            <User size={11} className="text-[#888888] shrink-0" />
             <span
-              className="text-[10px] font-black tracking-widest uppercase text-white"
-              style={{ fontFamily: "var(--font-barlow-condensed)" }}
+              className="text-[10px] font-semibold tracking-wider uppercase text-[#444444]"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               View Enrollment Profile
             </span>
           </div>
-          {profileOpen ? <ChevronUp size={12} className="text-[#B0B0B0]" /> : <ChevronDown size={12} className="text-[#B0B0B0]" />}
+          {profileOpen ? <ChevronUp size={12} className="text-[#888888]" /> : <ChevronDown size={12} className="text-[#888888]" />}
         </button>
 
         {profileOpen && (
           <>
-            {/* Student-readable summary fields */}
-            <div className="border-t border-[#2E2E2E] px-4 py-3 space-y-2">
+            <div className="border-t border-[#E5E5E5] px-4 py-3 space-y-2">
               {[
                 ["Name", lead.name],
                 ["Phone", lead.phone],
@@ -1397,13 +1426,12 @@ function StudentConfirmation({
                 ...(concern ? [["Main concern", concern.replace(/\s*—.*$/, "").trim()]] as [string, string][] : []),
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between items-start gap-4 text-xs">
-                  <span className="text-[#B0B0B0] shrink-0">{label}</span>
-                  <span className="font-semibold text-white text-right">{value}</span>
+                  <span className="text-[#888888] shrink-0" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{label}</span>
+                  <span className="font-semibold text-[#111111] text-right" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{value}</span>
                 </div>
               ))}
             </div>
-            {/* Full advisor profile below */}
-            <div className="border-t border-border px-1 py-1">
+            <div className="border-t border-[#E5E5E5] px-1 py-1">
               <EnrollmentView
                 lead={lead}
                 answers={answers}
@@ -1418,13 +1446,13 @@ function StudentConfirmation({
         )}
       </div>
 
-      {/* ── Actions ────────────────────────────────────────────────── */}
+      {/* ── Actions ─────────────────���──────────────────────────────── */}
       <div className="space-y-2 pt-1">
         <button
           type="button"
           onClick={onReset}
-          className="w-full py-3 border border-[#2E2E2E] text-xs font-black tracking-widest uppercase text-[#B0B0B0] hover:border-white hover:text-white transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="w-full py-3 border border-[#E5E5E5] rounded-2xl text-xs font-semibold text-[#666666] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center gap-2"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           <RotateCcw size={11} />
           Start Over
@@ -1433,8 +1461,8 @@ function StudentConfirmation({
           <button
             type="button"
             onClick={onClose}
-            className="w-full py-2.5 text-xs font-bold tracking-widest uppercase text-[#B0B0B0]/50 hover:text-[#B0B0B0] transition-colors flex items-center justify-center gap-1.5"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="w-full py-2.5 text-xs font-semibold text-[#AAAAAA] hover:text-[#666666] transition-colors flex items-center justify-center gap-1.5"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             <X size={11} />
             Close
@@ -1469,13 +1497,13 @@ function EnrollmentView({
   // Intent display helpers
   const intentLabel = intent === "High" ? "High" : intent === "Medium" ? "Warm" : "Researching"
   const intentColor =
-    intent === "High" ? "text-green-400" : intent === "Medium" ? "text-yellow-400" : "text-muted-foreground"
+    intent === "High" ? "text-green-700" : intent === "Medium" ? "text-yellow-700" : "text-[#888888]"
   const intentBg =
     intent === "High"
-      ? "bg-green-500/10 border-green-500/30"
+      ? "bg-green-50 border-green-300"
       : intent === "Medium"
-      ? "bg-yellow-500/10 border-yellow-500/30"
-      : "bg-secondary border-border"
+      ? "bg-yellow-50 border-yellow-300"
+      : "bg-[#F5F5F5] border-[#E0E0E0]"
 
   // Derive routing signals from answers
   const concernLabel = concern?.replace(/\s*—.*$/, "").trim() ?? "—"
@@ -1542,23 +1570,23 @@ function EnrollmentView({
     <div className={`space-y-4 ${embedded ? "px-3 pt-3 pb-4" : "pb-2"}`}>
 
       {/* ── Header ───���─────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between pb-3 border-b border-[#2E2E2E] gap-3">
+      <div className="flex items-start justify-between pb-3 border-b border-[#E5E5E5] gap-3">
         <div>
           <p
-            className="text-sm font-black tracking-widest uppercase text-white"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className="text-sm font-bold text-[#111111]"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             Enrollment Lead Profile
           </p>
-          <p className="text-[11px] text-[#B0B0B0]/70 mt-0.5 leading-snug">
-            Generated by Mia from the student&apos;s fit check &middot;{" "}
+          <p className="text-[11px] text-[#888888] mt-0.5 leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+            Generated by Mia &middot;{" "}
             {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </p>
         </div>
         {!embedded && (
           <span
-            className={`shrink-0 text-[10px] font-black tracking-widest uppercase px-2.5 py-1 border ${intentBg} ${intentColor}`}
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
+            className={`shrink-0 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-1 rounded-full border ${intentBg} ${intentColor}`}
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
             {intentLabel} Intent
           </span>
@@ -1575,8 +1603,8 @@ function EnrollmentView({
           ["Recommended program", program.name],
         ].map(([l, v]) => (
           <div key={l} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-[#B0B0B0] shrink-0">{l}</span>
-            <span className="font-semibold text-white text-right">{v}</span>
+            <span className="text-[#888888] shrink-0" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{l}</span>
+            <span className="font-semibold text-[#111111] text-right" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{v}</span>
           </div>
         ))}
       </InfoSection>
@@ -1591,26 +1619,26 @@ function EnrollmentView({
           ["Fit signal", fitSignal],
         ].map(([l, v]) => (
           <div key={String(l)} className="flex justify-between items-start gap-4 text-xs">
-            <span className="text-[#B0B0B0] shrink-0">{l}</span>
-            <span className="font-semibold text-white text-right">{v}</span>
+            <span className="text-[#888888] shrink-0" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{l}</span>
+            <span className="font-semibold text-[#111111] text-right" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{v}</span>
           </div>
         ))}
       </InfoSection>
 
       {/* ── 3. Main Concern ─────────────────────��─────────────────── */}
       <InfoSection title="Main Concern">
-        <p className="text-xs font-semibold text-white mb-2">{concernLabel}</p>
+        <p className="text-xs font-semibold text-[#111111] mb-2" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{concernLabel}</p>
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-[#B0B0B0] mb-1.5"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-[10px] font-semibold tracking-wider uppercase text-[#888888] mb-1.5"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           Suggested Talking Points
         </p>
         <ul className="space-y-1.5">
           {concernPoints.map((pt) => (
             <li key={pt} className="flex items-start gap-2 text-xs">
-              <span className="shrink-0 w-1 h-1 rounded-full bg-primary mt-1.5" />
-              <span className="text-[#B0B0B0] leading-snug">{pt}</span>
+              <span className="shrink-0 w-1 h-1 rounded-full bg-[#2563EB] mt-1.5" />
+              <span className="text-[#555555] leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{pt}</span>
             </li>
           ))}
         </ul>
@@ -1618,30 +1646,30 @@ function EnrollmentView({
 
       {/* ── 4. Conversation Summary ───────────────────────────────── */}
       <InfoSection title="Conversation Summary">
-        <p className="text-xs text-[#B0B0B0] leading-relaxed">{conversationSummary}</p>
+        <p className="text-xs text-[#555555] leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{conversationSummary}</p>
       </InfoSection>
 
       {/* ── 5. Recommended Next Best Action ──────────────────────── */}
-      <div className="border border-primary/30 bg-primary/5 px-3 py-2.5">
+      <div className="border border-blue-200 bg-blue-50 px-3 py-2.5 rounded-xl">
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-primary mb-1"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-[10px] font-semibold tracking-wider uppercase text-[#2563EB] mb-1"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           Recommended Next Best Action
         </p>
-        <p className="text-xs text-white font-semibold leading-snug">{nextAction}</p>
+        <p className="text-xs text-[#111111] font-semibold leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{nextAction}</p>
       </div>
 
       {/* ── 6. Suggested Advisor Opener ───────────────────────────── */}
       <InfoSection title="Suggested Advisor Opener">
-        <p className="text-xs text-white italic leading-relaxed">{advisorScript}</p>
+        <p className="text-xs text-[#444444] italic leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{advisorScript}</p>
       </InfoSection>
 
       {/* ── Actions ───────────────────────────────────────────────── */}
       <div className="space-y-2 pt-1">
         <p
-          className="text-[10px] font-black tracking-widest uppercase text-[#B0B0B0]"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-[10px] font-semibold tracking-wider uppercase text-[#888888]"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           Actions
         </p>
@@ -1654,8 +1682,8 @@ function EnrollmentView({
             <button
               key={label}
               type="button"
-              className="py-3 border border-[#2E2E2E] text-[10px] font-black tracking-widest uppercase text-[#B0B0B0] hover:border-primary hover:text-white transition-colors flex flex-col items-center gap-1.5"
-              style={{ fontFamily: "var(--font-barlow-condensed)", backgroundColor: "#161616" }}
+              className="py-3 border border-[#E5E5E5] rounded-xl text-[10px] font-semibold text-[#666666] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors flex flex-col items-center gap-1.5 bg-white"
+              style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
               <Icon size={13} />
               {label}
@@ -1672,63 +1700,69 @@ function EnrollmentView({
 function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
   return (
     <div
-      className={`relative flex flex-col overflow-hidden border border-[#2E2E2E] ${
+      className={`relative flex flex-col overflow-hidden border border-[#E0E0E0] bg-white ${
         compact ? "h-[560px]" : "h-full"
       }`}
-      style={{ backgroundColor: "#0F0F0F" }}
+      style={{
+        fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+        boxShadow: "0 4px 24px -4px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)",
+      }}
     >
       {children}
     </div>
   )
 }
 
-function PanelHeader({ onReset, onClose }: { onReset?: () => void; onClose?: () => void }) {
+function PanelHeader({ onReset, onClose, phase }: { onReset?: () => void; onClose?: () => void; phase?: Phase }) {
+  const statusText =
+    phase === "flow" ? "Fit Check in Progress" :
+    phase === "grounded" ? "Reviewing Your Answers" :
+    phase === "summary" ? "Fit Summary Ready" :
+    phase === "capture" ? "Almost Done — One More Step" :
+    phase === "handoff" ? "Connected to Enrollment" :
+    "Online · Ask me anything"
+
   return (
-    <div className="px-4 py-3 border-b border-[#2E2E2E] flex items-center justify-between shrink-0">
+    <div className="px-4 py-3 border-b border-[#E5E5E5] bg-white flex items-center justify-between shrink-0">
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 bg-primary flex items-center justify-center shrink-0">
-          <span
-            className="text-primary-foreground text-[9px] font-black tracking-wider"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            MIA
-          </span>
+        {/* WWA circular logo badge with green online dot */}
+        <div className="relative shrink-0">
+          <div className="w-9 h-9 rounded-full border-2 border-[#111] bg-white flex items-center justify-center overflow-hidden">
+            <svg viewBox="0 0 40 40" width="28" height="28" aria-hidden="true">
+              <circle cx="20" cy="20" r="19" fill="#111" />
+              <text x="20" y="25" textAnchor="middle" fill="white" fontSize="11" fontWeight="900" fontFamily="sans-serif">WWA</text>
+            </svg>
+          </div>
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" aria-hidden="true" />
         </div>
         <div className="leading-tight">
-          <div
-            className="text-white font-black text-xs tracking-widest uppercase"
-            style={{ fontFamily: "var(--font-barlow-condensed)" }}
-          >
-            Mia — Enrollment Assistant
+          <div className="text-[#111111] font-bold text-sm">
+            Western Welding Academy
           </div>
-          <div className="text-[#B0B0B0] text-[10px]">Western Welding Academy</div>
+          <div className="text-[#888888] text-[11px]">{statusText}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-[10px] text-[#B0B0B0]">Online</span>
-        </div>
+      <div className="flex items-center gap-1.5">
         {onReset && (
           <button
             type="button"
             onClick={onReset}
-            className="p-1 text-[#B0B0B0] hover:text-white transition-colors"
+            className="p-1.5 text-[#888] hover:text-[#111] transition-colors rounded"
             title="Start over"
             aria-label="Start over"
           >
-            <RotateCcw size={11} />
+            <RotateCcw size={12} />
           </button>
         )}
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="p-1 text-[#B0B0B0] hover:text-white transition-colors"
+            className="p-1.5 text-[#888] hover:text-[#111] transition-colors rounded"
             title="Close panel"
             aria-label="Close Mia panel"
           >
-            <X size={14} />
+            <X size={16} />
           </button>
         )}
       </div>
@@ -1751,8 +1785,9 @@ function StepProgress({
   const handoffActive = phase === "handoff"
   const flowDone = phase === "grounded" || summaryActive || handoffActive
   const isIdle = phase === "idle"
+  if (isIdle) return null
   return (
-    <div className="px-4 py-2 border-b border-[#2E2E2E] shrink-0 flex items-center gap-1.5">
+    <div className="px-4 py-2 border-b border-[#E5E5E5] bg-white shrink-0 flex items-center gap-1.5">
       {PROGRESS_STEPS.map((label, i) => {
         const isSummaryStep = i === PROGRESS_STEPS.length - 1
         const isDone = isIdle ? false : isSummaryStep ? handoffActive : flowDone || i < answersCount
@@ -1762,14 +1797,14 @@ function StepProgress({
             <div className="w-full flex flex-col gap-0.5">
               <div
                 className={`h-0.5 transition-colors ${
-                  isDone || isActive ? "bg-primary" : "bg-[#2E2E2E]"
+                  isDone || isActive ? "bg-[#2563EB]" : "bg-[#E0E0E0]"
                 }`}
               />
               <span
-                className={`text-[10px] font-bold tracking-widest uppercase truncate ${
-                  isDone || isActive ? "text-primary" : "text-[#B0B0B0]/50"
+                className={`text-[9px] font-semibold tracking-wide uppercase truncate ${
+                  isDone || isActive ? "text-[#2563EB]" : "text-[#BBBBBB]"
                 }`}
-                style={{ fontFamily: "var(--font-barlow-condensed)" }}
+                style={{ fontFamily: "var(--font-inter), sans-serif" }}
               >
                 {label}
               </span>
@@ -1788,20 +1823,19 @@ function SuccessToast({ visible }: { visible: boolean }) {
     <div
       role="status"
       aria-live="polite"
-      className="absolute top-0 inset-x-0 z-50 flex items-center justify-center gap-2.5 px-4 py-3 border-b border-green-700/40 transition-all duration-300"
+      className="absolute top-0 inset-x-0 z-50 flex items-center justify-center gap-2.5 px-4 py-3 border-b border-green-200 transition-all duration-300 bg-green-50"
       style={{
-        backgroundColor: "#0a2318",
         transform: visible ? "translateY(0)" : "translateY(-100%)",
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
       }}
     >
-      <div className="w-5 h-5 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center shrink-0">
-        <Check size={11} className="text-green-400" />
+      <div className="w-5 h-5 rounded-full bg-green-100 border border-green-400 flex items-center justify-center shrink-0">
+        <Check size={11} className="text-green-600" />
       </div>
       <span
-        className="text-xs font-bold tracking-widest uppercase text-green-400"
-        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        className="text-xs font-semibold text-green-700"
+        style={{ fontFamily: "var(--font-inter), sans-serif" }}
       >
         Submitted — connecting you with an advisor
       </span>
@@ -1812,11 +1846,11 @@ function SuccessToast({ visible }: { visible: boolean }) {
 function StatusPill({ text }: { text: string }) {
   if (!text) return null
   return (
-    <div className="flex items-center gap-2 ml-9 py-1">
-      <span className="w-1 h-1 rounded-full bg-primary shrink-0 animate-pulse" />
+    <div className="flex items-center gap-2 ml-10 py-1">
+      <span className="w-1 h-1 rounded-full bg-[#AAAAAA] shrink-0 animate-pulse" />
       <span
-        className="text-[11px] text-primary/80 italic leading-snug"
-        style={{ fontFamily: "var(--font-sans)" }}
+        className="text-[11px] text-[#888888] italic leading-snug"
+        style={{ fontFamily: "var(--font-inter), sans-serif" }}
       >
         {text}
       </span>
@@ -1824,36 +1858,49 @@ function StatusPill({ text }: { text: string }) {
   )
 }
 
-function MiaBubble({ text }: { text: string }) {
+function MiaBubble({ text, isLast = true }: { text: string; isLast?: boolean }) {
   return (
-    <div className="flex gap-2.5">
-      <div className="w-6 h-6 bg-primary shrink-0 flex items-center justify-center mt-0.5 rounded-sm">
-        <span
-          className="text-primary-foreground text-[8px] font-black"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-2.5 items-end">
+        <div className="w-7 h-7 rounded-full bg-[#111111] border border-[#333] shrink-0 flex items-center justify-center mb-1">
+          <span className="text-white text-[8px] font-bold" style={{ fontFamily: "var(--font-inter), sans-serif" }}>M</span>
+        </div>
+        <div
+          className="px-3.5 py-2.5 text-sm text-[#111111] leading-relaxed whitespace-pre-wrap max-w-[84%] rounded-2xl rounded-bl-md"
+          style={{ backgroundColor: "#EBEBEB", fontFamily: "var(--font-inter), sans-serif" }}
         >
-          M
+          {text}
+        </div>
+      </div>
+      {isLast && (
+        <span
+          className="text-[10px] text-[#AAAAAA] ml-10 pl-0.5"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
+        >
+          Admissions Assistant · AI Agent
         </span>
-      </div>
-      <div
-        className="px-3.5 py-2.5 text-sm text-white leading-relaxed whitespace-pre-wrap max-w-[88%] rounded-md rounded-tl-none"
-        style={{ backgroundColor: "#1C1C1C" }}
-      >
-        {text}
-      </div>
+      )}
     </div>
   )
 }
 
-function UserBubble({ text }: { text: string }) {
+function UserBubble({ text, isLast = true }: { text: string; isLast?: boolean }) {
   return (
-    <div className="flex justify-end">
+    <div className="flex flex-col items-end gap-1">
       <div
-        className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[85%] text-white rounded-md rounded-tr-none border-l-2 border-[#2563EB]"
-        style={{ backgroundColor: "#2A2A2A" }}
+        className="px-3.5 py-2.5 text-sm leading-relaxed max-w-[80%] text-white rounded-2xl rounded-br-md"
+        style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
       >
         {text}
       </div>
+      {isLast && (
+        <span
+          className="text-[10px] text-[#AAAAAA] mr-0.5"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
+        >
+          just now
+        </span>
+      )}
     </div>
   )
 }
@@ -1874,11 +1921,11 @@ function Field({
     return (
       <fieldset className="space-y-1 border-0 p-0 m-0">
         <legend
-          className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] flex items-center gap-1"
-          style={{ fontFamily: "var(--font-barlow-condensed)" }}
+          className="text-[10px] font-semibold tracking-wider uppercase text-[#666666] flex items-center gap-1"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           {label}
-          {required && <span className="text-primary">*</span>}
+          {required && <span className="text-[#2563EB]">*</span>}
         </legend>
         {children}
       </fieldset>
@@ -1888,11 +1935,11 @@ function Field({
     <div className="space-y-1">
       <label
         htmlFor={id}
-        className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0] flex items-center gap-1"
-        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        className="text-[10px] font-semibold tracking-wider uppercase text-[#666666] flex items-center gap-1"
+        style={{ fontFamily: "var(--font-inter), sans-serif" }}
       >
         {label}
-        {required && <span className="text-primary">*</span>}
+        {required && <span className="text-[#2563EB]">*</span>}
       </label>
       {children}
     </div>
@@ -1903,12 +1950,12 @@ function InfoSection({ title, children }: { title: string; children: React.React
   return (
     <div className="space-y-1.5">
       <p
-        className="text-[10px] font-bold tracking-widest uppercase text-[#B0B0B0]"
-        style={{ fontFamily: "var(--font-barlow-condensed)" }}
+        className="text-[10px] font-semibold tracking-wider uppercase text-[#888888]"
+        style={{ fontFamily: "var(--font-inter), sans-serif" }}
       >
         {title}
       </p>
-      <div className="border border-[#2E2E2E] p-3 space-y-1.5" style={{ backgroundColor: "#161616" }}>{children}</div>
+      <div className="border border-[#E5E5E5] rounded-xl p-3 space-y-1.5 bg-white">{children}</div>
     </div>
   )
 }
