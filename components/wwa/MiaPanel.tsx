@@ -23,7 +23,7 @@ const STEPS = [
   {
     id: "goal",
     label: "Goal",
-    question: "What are you hoping welding can do for you?",
+    question: "What are you hoping welding school can do for you?",
     options: [
       "Start a higher-paying career",
       "Get into pipeline / travel welding",
@@ -276,7 +276,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
 
         // Build a condensed message thread leading up to the Concern question
         const intro: Message[] = [
-          { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
+          { role: "mia", text: "I'll help you decide if this is worth pursuing." },
           { role: "mia", text: STEPS[3].question },
         ]
 
@@ -323,7 +323,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         setGroundedReady(false)
         setSubmitted(false)
         setMessages([
-          { role: "mia", text: "Honest answers only — I'll tell you straight if WWA isn't the right move." },
+          { role: "mia", text: "I'll help you decide if this is worth pursuing." },
         ])
         setTimeout(() => {
           if (gen.current !== myGen) return
@@ -437,7 +437,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages([
       {
         role: "mia",
-        text: "Honest answers only — I'll tell you straight if WWA isn't the right move.",
+        text: "I'll help you decide if this is worth pursuing.",
       },
     ])
     setTimeout(() => {
@@ -1069,7 +1069,7 @@ function IdleState({
         )}
 
         {/* Mia's opening message */}
-        <MiaBubble text="Tell me what you're trying to figure out. I'll check program fit, cost, housing, timeline, and whether an advisor should follow up." />
+        <MiaBubble text="Not sure if WWA is right for you? I'll help you check program fit, cost, housing, and next steps." />
 
         {/* Mia's Plan card */}
         <div className="ml-10 border border-[#E5E5E5] rounded-2xl rounded-tl-md overflow-hidden" style={{ backgroundColor: "#F8F8F8" }}>
