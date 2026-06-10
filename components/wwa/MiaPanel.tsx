@@ -670,7 +670,13 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} phase="capture" />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 bg-white">
-          <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
+          <MiaBubble text="Last step. Send your fit summary to enrollment." />
+          <p
+            className="text-xs text-[#666666] leading-relaxed -mt-1 px-0.5"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Your advisor will see your recommended program, timeline, and main concern before they reach out.
+          </p>
 
           <Field label="First name" required>
             <input
@@ -788,10 +794,10 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3.5 font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110 rounded-2xl"
+            className="w-full py-3.5 font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110 rounded-2xl"
             style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Connect Me With Enrollment
+            Send Summary to Enrollment
             <ChevronRight size={15} />
           </button>
 
@@ -922,7 +928,8 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
                 answers={answers}
                 program={program}
                 intent={intent}
-                onCapture={() => {
+                onCapture={(preferred) => {
+                  if (preferred) setLead((prev) => ({ ...prev, contact: preferred }))
                   setMessages((prev) => [...prev, { role: "user", text: "Connect me with enrollment" }])
                   setPhase("capture")
                 }}
@@ -1199,12 +1206,13 @@ function FitSummaryCard({
   answers: string[]
   program: { name: string; duration: string; tuition: string }
   intent: "High" | "Medium" | "Researching"
-  onCapture: () => void
+  onCapture: (preferred?: "Call" | "Text") => void
   onBack: () => void
   onReset: () => void
 }) {
   const [textClicked, setTextClicked] = useState(false)
   const [callClicked, setCallClicked] = useState(false)
+  const [interstitial, setInterstitial] = useState<null | "call" | "text">(null)
   const [goal, experience, timeline, concern] = answers
   const bullets = whyBullets(answers)
   const questions = suggestedQuestions(concern)
@@ -1313,68 +1321,141 @@ function FitSummaryCard({
       </p>
 
       {/* CTAs */}
-      <div className="space-y-2.5 pt-1 border-t border-[#E5E5E5]">
-        {/* "Want the fastest answer?" section */}
+      <div className="space-y-3 pt-1 border-t border-[#E5E5E5]">
         <div className="pt-2">
           <p
             className="text-sm font-bold text-[#111111] mb-0.5"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Want the fastest answer?
+            Ready to talk to enrollment?
           </p>
           <p
-            className="text-[11px] text-[#888888] leading-snug mb-2.5"
+            className="text-[11px] text-[#888888] leading-snug mb-3"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Call or text enrollment now. Mia has your fit summary ready.
+            Send your fit summary first so the advisor knows your goal, timeline, and main concern.
           </p>
 
-          {/* Text Enrollment — strong secondary */}
-          <a
-            href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
-              `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
-                concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
-              }.`
-            )}`}
-            onClick={() => setTextClicked(true)}
-            className="w-full py-2.5 mb-1 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
-          >
-            <MessageSquare size={15} />
-            Text Enrollment
-          </a>
-          {textClicked && (
-            <p className="text-[11px] text-[#2563EB] mb-2 pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Text opened. Mia&apos;s fit summary is ready for enrollment.
-            </p>
-          )}
-
-          {/* Call Directly — strong secondary */}
-          <a
-            href={`tel:+${WWA_PHONE}`}
-            onClick={() => setCallClicked(true)}
-            className="w-full py-2.5 mb-1 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
-          >
-            <Phone size={15} />
-            Call Directly
-          </a>
-          {callClicked && (
-            <p className="text-[11px] text-[#2563EB] mb-2 pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Call started. Advisor context is prepared.
-            </p>
-          )}
-
-          {/* Connect Me With Enrollment — primary */}
+          {/* Primary CTA */}
           <button
             type="button"
-            onClick={onCapture}
-            className="w-full py-3 font-bold text-sm transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl"
+            onClick={() => onCapture()}
+            className="w-full py-3 font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl mb-3"
             style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Connect Me With Enrollment
+            Send My Fit Summary
             <ChevronRight size={15} />
           </button>
+
+          {/* Secondary utility row */}
+          {interstitial === null && (
+            <div className="flex items-center gap-2">
+              <span
+                className="text-[11px] text-[#888888] mr-auto"
+                style={{ fontFamily: "var(--font-inter), sans-serif" }}
+              >
+                Need help now?
+              </span>
+              <button
+                type="button"
+                onClick={() => setInterstitial("call")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
+                style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                aria-label={`Call WWA at ${WWA_PHONE_DISPLAY}`}
+              >
+                <Phone size={11} />
+                Call
+              </button>
+              <button
+                type="button"
+                onClick={() => setInterstitial("text")}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
+                style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                aria-label={`Text WWA at ${WWA_PHONE_DISPLAY}`}
+              >
+                <MessageSquare size={11} />
+                Text
+              </button>
+            </div>
+          )}
+
+          {/* Interstitial nudge — shown when Call or Text is tapped before submitting */}
+          {interstitial !== null && (
+            <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-[#FAFAFA] mt-1">
+              <div className="px-3.5 pt-3 pb-3.5 space-y-2">
+                <p
+                  className="text-sm font-bold text-[#111111]"
+                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                >
+                  Send your summary first?
+                </p>
+                <p
+                  className="text-[11px] text-[#666666] leading-snug"
+                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                >
+                  This helps the advisor start with your program fit, timeline, and main concern.
+                </p>
+
+                <div className="space-y-2 pt-1">
+                  {/* Primary: send summary then go to capture with preferred contact */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterstitial(null)
+                      onCapture(interstitial === "call" ? "Call" : "Text")
+                    }}
+                    className="w-full py-2.5 font-bold text-sm text-white rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-colors"
+                    style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    {interstitial === "text" ? (
+                      <><MessageSquare size={13} /> Send Summary &amp; Text</>
+                    ) : (
+                      <><Phone size={13} /> Send Summary &amp; Call</>
+                    )}
+                  </button>
+
+                  {/* Secondary: skip summary, open link directly */}
+                  {interstitial === "text" ? (
+                    <a
+                      href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
+                        "Hi, I'm interested in Western Welding Academy and want to ask about enrollment."
+                      )}`}
+                      onClick={() => { setTextClicked(true); setInterstitial(null) }}
+                      className="w-full py-2 border border-[#D0D0D0] text-[#444444] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 hover:border-[#111] hover:text-[#111] transition-colors"
+                      style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                    >
+                      Text Without Summary
+                    </a>
+                  ) : (
+                    <a
+                      href={`tel:+${WWA_PHONE}`}
+                      onClick={() => { setCallClicked(true); setInterstitial(null) }}
+                      className="w-full py-2 border border-[#D0D0D0] text-[#444444] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 hover:border-[#111] hover:text-[#111] transition-colors"
+                      style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                    >
+                      Call Without Summary
+                    </a>
+                  )}
+
+                  {/* Cancel */}
+                  <button
+                    type="button"
+                    onClick={() => setInterstitial(null)}
+                    className="w-full py-2 text-[11px] font-semibold text-[#AAAAAA] hover:text-[#666666] transition-colors"
+                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(callClicked || textClicked) && !interstitial && (
+            <p className="text-[11px] text-[#888888] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Opening direct contact without sending your fit summary.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -1434,81 +1515,107 @@ function StudentConfirmation({
   return (
     <div className="space-y-4 pb-4">
 
-      {/* ── YOU'RE ALL SET ─────────────────────────────────────────── */}
+      {/* ── YOU'RE ALL SET ────────���───────────────────────────────── */}
       <div className="pt-1">
         <h2
-          className="text-lg font-bold text-[#111111] leading-tight"
+          className="text-base font-bold tracking-wide uppercase text-[#111111] leading-tight"
           style={{ fontFamily: "var(--font-inter), sans-serif" }}
         >
           {"You're all set."}
         </h2>
-  <p className="text-xs text-[#666666] mt-1.5 leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-  {"We've sent your fit summary and details to an enrollment advisor. You should hear back within one business day."}
-  </p>
-  <p className="text-[11px] text-[#2563EB] mt-2" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-    Advisor handoff prepared.
-  </p>
+        <p className="text-xs text-[#666666] mt-1.5 leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+          {"We've sent your fit summary and details to an enrollment advisor."}
+        </p>
+        <p className="text-[11px] text-[#2563EB] mt-1.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+          Advisor handoff prepared. Enrollment follow-up queued.
+        </p>
       </div>
 
-      {/* ── WANT TO MOVE FASTER? ──────────────────────────────────── */}
+      {/* ── WANT THE FASTEST RESPONSE? ────────────────────────────── */}
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
-        <div className="px-4 pt-3.5 pb-1">
-          <p
-            className="text-sm font-bold text-[#111111] mb-1"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
-          >
-            Want to move faster?
-          </p>
-          <p
-            className="text-[11px] text-[#888888] leading-snug mb-3"
-            style={{ fontFamily: "var(--font-inter), sans-serif" }}
-          >
-            Call or text enrollment now. Your fit summary is ready, so you know what to ask.
-          </p>
-
-          <div className="space-y-2 pb-3.5">
-            {/* Text Enrollment */}
-            <a
-              href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
-                `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
-                  concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
-                }.`
-              )}`}
-              onClick={() => setTextClicked(true)}
-              className="w-full py-2.5 border-2 border-[#111111] rounded-2xl text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2"
+        <div className="px-4 pt-4 pb-4 space-y-3">
+          <div>
+            <p
+              className="text-sm font-bold text-[#111111] mb-0.5"
               style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
-              <MessageSquare size={14} />
-              Text Enrollment
-            </a>
-            {textClicked && (
-              <p className="text-[11px] text-[#2563EB] pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-                Text opened. Mia&apos;s fit summary is ready for enrollment.
-              </p>
-            )}
-
-            {/* Call Enrollment */}
-            <a
-              href={`tel:+${WWA_PHONE}`}
-              onClick={() => setCallClicked(true)}
-              className="w-full py-2.5 border-2 border-[#111111] rounded-2xl text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2"
+              Want the fastest response?
+            </p>
+            <p
+              className="text-[11px] text-[#888888] leading-snug"
               style={{ fontFamily: "var(--font-inter), sans-serif" }}
             >
-              <Phone size={14} />
-              Call Enrollment
-            </a>
-            {callClicked && (
-              <p className="text-[11px] text-[#2563EB] pl-1" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-                Call started. Advisor context is prepared.
-              </p>
-            )}
-
-
+              Your fit summary is ready. Call or text enrollment now.
+            </p>
           </div>
+
+          {/* Text Enrollment — solid primary */}
+          <a
+            href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
+              `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
+                concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
+              }.`
+            )}`}
+            onClick={() => setTextClicked(true)}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 hover:brightness-110 transition-colors"
+            style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            <MessageSquare size={14} />
+            Text Enrollment
+          </a>
+          {textClicked && (
+            <p className="text-[11px] text-[#2563EB] -mt-1 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Your fit summary is ready for enrollment.
+            </p>
+          )}
+
+          {/* Call Enrollment — solid primary */}
+          <a
+            href={`tel:+${WWA_PHONE}`}
+            onClick={() => setCallClicked(true)}
+            className="w-full py-3 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 hover:brightness-110 transition-colors"
+            style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            <Phone size={14} />
+            Call Enrollment
+          </a>
+          {callClicked && (
+            <p className="text-[11px] text-[#2563EB] -mt-1 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
+              Your fit summary is ready for enrollment.
+            </p>
+          )}
+
+          {/* View What Mia Sent — secondary */}
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.getElementById("wwa-enrollment-profile")
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" })
+                if (!profileOpen) el.click()
+              }
+            }}
+            className="w-full py-2.5 border border-[#D0D0D0] rounded-2xl text-xs font-semibold text-[#444444] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center gap-2"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            <User size={12} />
+            View What Mia Sent
+          </button>
+
+          {/* Start Over — tertiary */}
+          <button
+            type="button"
+            onClick={onReset}
+            className="w-full py-2 text-[11px] font-semibold text-[#AAAAAA] hover:text-[#666666] transition-colors flex items-center justify-center gap-1.5"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            <RotateCcw size={10} />
+            Start Over
+          </button>
         </div>
       </div>
 
-      {/* ── WHAT MIA DID ────────────────�����────────────────────────── */}
+      {/* ── WHAT MIA DID ────────────────────────────────────────── */}
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <div className="px-4 py-2.5 border-b border-[#E5E5E5] bg-[#F8F8F8]">
           <span
@@ -1585,18 +1692,9 @@ function StudentConfirmation({
         )}
       </div>
 
-      {/* ── Actions ─────────────────���──────────────────────────────── */}
-      <div className="space-y-2 pt-1">
-        <button
-          type="button"
-          onClick={onReset}
-          className="w-full py-3 border border-[#E5E5E5] rounded-2xl text-xs font-semibold text-[#666666] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center gap-2"
-          style={{ fontFamily: "var(--font-inter), sans-serif" }}
-        >
-          <RotateCcw size={11} />
-          Start Over
-        </button>
-        {onClose && (
+      {/* ── Close ───────────────────────────────────────────────────── */}
+      {onClose && (
+        <div className="pt-1">
           <button
             type="button"
             onClick={onClose}
@@ -1606,8 +1704,8 @@ function StudentConfirmation({
             <X size={11} />
             Close
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1799,12 +1897,12 @@ function EnrollmentView({
         <p className="text-xs text-[#111111] font-semibold leading-snug" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{nextAction}</p>
       </div>
 
-      {/* ── 6. Suggested Advisor Opener ───────────────────────────── */}
+      {/* ��─ 6. Suggested Advisor Opener ───────────────────────────── */}
       <InfoSection title="Suggested Advisor Opener">
         <p className="text-xs text-[#444444] italic leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{advisorScript}</p>
       </InfoSection>
 
-      {/* ── Actions ───────────────────────────────────────────────── */}
+      {/* ── Actions ─────────────────────────────────────────────���─���─ */}
       <div className="space-y-2 pt-1">
         <p
           className="text-[10px] font-semibold tracking-wider uppercase text-[#888888]"
