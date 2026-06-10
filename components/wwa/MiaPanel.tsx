@@ -1311,8 +1311,47 @@ function FitSummaryCard({
       </p>
 
       {/* CTAs */}
-      <div className="space-y-2 pt-1 border-t border-[#E5E5E5]">
+      <div className="space-y-2.5 pt-1 border-t border-[#E5E5E5]">
+        {/* "Want the fastest answer?" section */}
         <div className="pt-2">
+          <p
+            className="text-sm font-bold text-[#111111] mb-0.5"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Want the fastest answer?
+          </p>
+          <p
+            className="text-[11px] text-[#888888] leading-snug mb-2.5"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Call or text enrollment now. Mia has your fit summary ready.
+          </p>
+
+          {/* Text Enrollment — strong secondary */}
+          <a
+            href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
+              `Hi, I just completed the WWA fit check. I'm interested in ${program.name} and want to ask about ${
+                concern?.replace(/\s*—.*$/, "").toLowerCase().trim() ?? "my situation"
+              }.`
+            )}`}
+            className="w-full py-2.5 mb-2 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            <MessageSquare size={15} />
+            Text Enrollment
+          </a>
+
+          {/* Call Directly — strong secondary */}
+          <a
+            href={`tel:+${WWA_PHONE}`}
+            className="w-full py-2.5 mb-2 border-2 border-[#111111] text-sm font-bold text-[#111111] hover:bg-[#111111] hover:text-white transition-colors flex items-center justify-center gap-2 rounded-2xl"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            <Phone size={15} />
+            Call Directly
+          </a>
+
+          {/* Connect Me With Enrollment — primary */}
           <button
             type="button"
             onClick={onCapture}
@@ -1323,13 +1362,6 @@ function FitSummaryCard({
             <ChevronRight size={15} />
           </button>
         </div>
-        <a
-          href="tel:18005551234"
-          className="w-full py-2.5 border border-[#E5E5E5] text-xs font-semibold text-[#666666] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center rounded-2xl"
-          style={{ fontFamily: "var(--font-inter), sans-serif" }}
-        >
-          Call Directly
-        </a>
       </div>
     </div>
   )
