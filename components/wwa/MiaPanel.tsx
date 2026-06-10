@@ -670,7 +670,13 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} phase="capture" />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 bg-white">
-          <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
+          <MiaBubble text="Last step. Send your fit summary to enrollment." />
+          <p
+            className="text-xs text-[#666666] leading-relaxed -mt-1 px-0.5"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Your advisor will see your recommended program, timeline, and main concern before they reach out.
+          </p>
 
           <Field label="First name" required>
             <input
@@ -788,10 +794,10 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="w-full py-3.5 font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110 rounded-2xl"
+            className="w-full py-3.5 font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed text-white hover:enabled:brightness-110 rounded-2xl"
             style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Connect Me With Enrollment
+            Send Summary to Enrollment
             <ChevronRight size={15} />
           </button>
 
@@ -1884,7 +1890,7 @@ function EnrollmentView({
         <p className="text-xs text-[#444444] italic leading-relaxed" style={{ fontFamily: "var(--font-inter), sans-serif" }}>{advisorScript}</p>
       </InfoSection>
 
-      {/* ── Actions ─────────────────────────────────────────────���─── */}
+      {/* ── Actions ─────────────────────────────────────────────���─���─ */}
       <div className="space-y-2 pt-1">
         <p
           className="text-[10px] font-semibold tracking-wider uppercase text-[#888888]"
