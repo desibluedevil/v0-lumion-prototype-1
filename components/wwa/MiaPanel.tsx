@@ -1503,28 +1503,12 @@ function StudentConfirmation({
               </p>
             )}
 
-            {/* View What Mia Sent — opens the enrollment profile */}
-            <button
-              type="button"
-              onClick={() => {
-                // Scroll to the profile accordion and open it
-                const el = document.getElementById("wwa-enrollment-profile")
-                if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "start" })
-                  el.click()
-                }
-              }}
-              className="w-full py-2.5 border border-[#E5E5E5] rounded-2xl text-xs font-semibold text-[#666666] hover:border-[#111] hover:text-[#111] transition-colors flex items-center justify-center gap-2"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
-              <User size={13} />
-              View What Mia Sent
-            </button>
+
           </div>
         </div>
       </div>
 
-      {/* ── WHAT MIA DID ────────────────���─────────────────────────── */}
+      {/* ── WHAT MIA DID ────────────────�����────────────────────────── */}
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <div className="px-4 py-2.5 border-b border-[#E5E5E5] bg-[#F8F8F8]">
           <span
