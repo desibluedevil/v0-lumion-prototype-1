@@ -1210,9 +1210,7 @@ function FitSummaryCard({
   onBack: () => void
   onReset: () => void
 }) {
-  const [textClicked, setTextClicked] = useState(false)
-  const [callClicked, setCallClicked] = useState(false)
-  const [interstitial, setInterstitial] = useState<null | "call" | "text">(null)
+
   const [goal, experience, timeline, concern] = answers
   const bullets = whyBullets(answers)
   const questions = suggestedQuestions(concern)
@@ -1327,135 +1325,34 @@ function FitSummaryCard({
             className="text-sm font-bold text-[#111111] mb-0.5"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Ready to talk to enrollment?
+            Ready for an advisor to follow up?
           </p>
           <p
             className="text-[11px] text-[#888888] leading-snug mb-3"
             style={{ fontFamily: "var(--font-inter), sans-serif" }}
           >
-            Send your fit summary first so the advisor knows your goal, timeline, and main concern.
+            Send your fit summary so enrollment knows your goal, timeline, and main concern.
           </p>
 
           {/* Primary CTA */}
           <button
             type="button"
             onClick={() => onCapture()}
-            className="w-full py-3 font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl mb-3"
+            className="w-full py-3 font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2 text-white hover:brightness-110 rounded-2xl mb-2"
             style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
           >
             Send My Fit Summary
             <ChevronRight size={15} />
           </button>
 
-          {/* Secondary utility row */}
-          {interstitial === null && (
-            <div className="flex items-center gap-2">
-              <span
-                className="text-[11px] text-[#888888] mr-auto"
-                style={{ fontFamily: "var(--font-inter), sans-serif" }}
-              >
-                Need help now?
-              </span>
-              <button
-                type="button"
-                onClick={() => setInterstitial("call")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
-                style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                aria-label={`Call WWA at ${WWA_PHONE_DISPLAY}`}
-              >
-                <Phone size={11} />
-                Call
-              </button>
-              <button
-                type="button"
-                onClick={() => setInterstitial("text")}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
-                style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                aria-label={`Text WWA at ${WWA_PHONE_DISPLAY}`}
-              >
-                <MessageSquare size={11} />
-                Text
-              </button>
-            </div>
-          )}
+          <p
+            className="text-[10px] text-[#AAAAAA] text-center leading-snug"
+            style={{ fontFamily: "var(--font-inter), sans-serif" }}
+          >
+            Prefer to call or text now? Use the buttons below. We&apos;ll ask if you want to send your summary first.
+          </p>
 
-          {/* Interstitial nudge — shown when Call or Text is tapped before submitting */}
-          {interstitial !== null && (
-            <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-[#FAFAFA] mt-1">
-              <div className="px-3.5 pt-3 pb-3.5 space-y-2">
-                <p
-                  className="text-sm font-bold text-[#111111]"
-                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                >
-                  Send your summary first?
-                </p>
-                <p
-                  className="text-[11px] text-[#666666] leading-snug"
-                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                >
-                  This helps the advisor start with your program fit, timeline, and main concern.
-                </p>
 
-                <div className="space-y-2 pt-1">
-                  {/* Primary: send summary then go to capture with preferred contact */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInterstitial(null)
-                      onCapture(interstitial === "call" ? "Call" : "Text")
-                    }}
-                    className="w-full py-2.5 font-bold text-sm text-white rounded-xl flex items-center justify-center gap-2 hover:brightness-110 transition-colors"
-                    style={{ backgroundColor: "#111111", fontFamily: "var(--font-inter), sans-serif" }}
-                  >
-                    {interstitial === "text" ? (
-                      <><MessageSquare size={13} /> Send Summary &amp; Text</>
-                    ) : (
-                      <><Phone size={13} /> Send Summary &amp; Call</>
-                    )}
-                  </button>
-
-                  {/* Secondary: skip summary, open link directly */}
-                  {interstitial === "text" ? (
-                    <a
-                      href={`sms:+${WWA_PHONE}?body=${encodeURIComponent(
-                        "Hi, I'm interested in Western Welding Academy and want to ask about enrollment."
-                      )}`}
-                      onClick={() => { setTextClicked(true); setInterstitial(null) }}
-                      className="w-full py-2 border border-[#D0D0D0] text-[#444444] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 hover:border-[#111] hover:text-[#111] transition-colors"
-                      style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                    >
-                      Text Without Summary
-                    </a>
-                  ) : (
-                    <a
-                      href={`tel:+${WWA_PHONE}`}
-                      onClick={() => { setCallClicked(true); setInterstitial(null) }}
-                      className="w-full py-2 border border-[#D0D0D0] text-[#444444] text-xs font-semibold rounded-xl flex items-center justify-center gap-2 hover:border-[#111] hover:text-[#111] transition-colors"
-                      style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                    >
-                      Call Without Summary
-                    </a>
-                  )}
-
-                  {/* Cancel */}
-                  <button
-                    type="button"
-                    onClick={() => setInterstitial(null)}
-                    className="w-full py-2 text-[11px] font-semibold text-[#AAAAAA] hover:text-[#666666] transition-colors"
-                    style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {(callClicked || textClicked) && !interstitial && (
-            <p className="text-[11px] text-[#888888] mt-1.5 pl-0.5" style={{ fontFamily: "var(--font-inter), sans-serif" }}>
-              Opening direct contact without sending your fit summary.
-            </p>
-          )}
         </div>
       </div>
     </div>
