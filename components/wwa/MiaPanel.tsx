@@ -19,6 +19,9 @@ import {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
+const WWA_PHONE = "18005551234"
+const WWA_PHONE_DISPLAY = "1-800-555-1234"
+
 const STEPS = [
   {
     id: "goal",
@@ -981,9 +984,35 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
         </div>
       )}
 
+      {/* Contact escape hatch — visible on idle, flow, grounded, and summary */}
+      {(["idle", "flow", "grounded", "summary"] as Phase[]).includes(phase) && (
+        <div
+          className="shrink-0 flex items-center gap-2 px-4 py-2 border-t border-[#F0F0F0] bg-white"
+          style={{ fontFamily: "var(--font-inter), sans-serif" }}
+        >
+          <span className="text-[11px] text-[#888888] mr-auto">Need help now?</span>
+          <a
+            href={`tel:+${WWA_PHONE}`}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
+            aria-label={`Call WWA at ${WWA_PHONE_DISPLAY}`}
+          >
+            <Phone size={11} />
+            Call
+          </a>
+          <a
+            href={`sms:+${WWA_PHONE}`}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-[#D0D8F0] text-[#2563EB] text-[11px] font-semibold hover:bg-[#EEF3FF] transition-colors focus-visible:outline-none"
+            aria-label={`Text WWA at ${WWA_PHONE_DISPLAY}`}
+          >
+            <MessageSquare size={11} />
+            Text
+          </a>
+        </div>
+      )}
+
       {/* Minimal Lumion footer on summary screen */}
       {phase === "summary" && (
-        <div className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-2 border-t border-[#E5E5E5] bg-white">
+        <div className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-2 bg-white">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M2 8h4M2 12h20M2 16h4M8 4l-4 16M16 4l4 16" stroke="#AAAAAA" strokeWidth="2" strokeLinecap="round"/>
           </svg>
