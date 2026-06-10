@@ -74,7 +74,7 @@ const STEPS = [
 const CONCERN_RESPONSES: Record<string, { headline: string; body: string }> = {
   "Cost — can I afford it?": {
     headline: "Programs range from $17,050 to $35,800. Housing, tools, and materials are included.",
-    body: "Financing may be available for qualified applicants. An advisor can walk you through options.",
+    body: "Financing options may be available. An advisor can walk you through what applies to you.",
   },
   "Location — can I move to Wyoming?": {
     headline: "WWA is in Gillette, Wyoming, and housing is included so students can relocate for training.",
@@ -577,7 +577,7 @@ function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behav
   function matchFreeInput(q: string): string {
     const t = q.toLowerCase()
     if (/cost|tuition|financ|price|pay|afford|money/.test(t))
-      return "Programs range from $17,050 to $35,800. Housing, tools, and materials are included. Financing may be available for qualified applicants. An advisor can walk you through options."
+      return "Programs range from $17,050 to $35,800. Housing, tools, and materials are included. Financing options may be available. An advisor can walk you through what applies to you."
     if (/hous|wyom|gillett|moving?|relocat|where|locat/.test(t))
       return "WWA is in Gillette, Wyoming. Housing is included, which helps students relocate for training."
     if (/no experience|beginner|never|never welded|zero|start|new to/.test(t))
@@ -1524,7 +1524,7 @@ function StudentConfirmation({
         </div>
       </div>
 
-      {/* ── WHAT MIA DID ──────────────────────────────────────────── */}
+      {/* ── WHAT MIA DID ────────────────���─────────────────────────── */}
       <div className="border border-[#E5E5E5] rounded-xl overflow-hidden bg-white">
         <div className="px-4 py-2.5 border-b border-[#E5E5E5] bg-[#F8F8F8]">
           <span
@@ -1854,15 +1854,17 @@ function EnrollmentView({
 
 function PanelShell({ compact, children }: { compact: boolean; children: React.ReactNode }) {
   return (
-    <div
-      className={`relative flex flex-col overflow-hidden border border-[#E0E0E0] bg-white ${
-        compact ? "h-[560px]" : "h-full"
-      }`}
-      style={{
-        fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
-        boxShadow: "0 4px 24px -4px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)",
-      }}
-    >
+  <div
+  className={`relative flex flex-col overflow-hidden border border-[#E0E0E0] bg-white ${
+  compact ? "h-[560px]" : "h-full"
+  }`}
+  style={{
+  fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+  boxShadow: "0 4px 24px -4px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)",
+  }}
+  onWheelCapture={(e) => e.stopPropagation()}
+  onTouchMoveCapture={(e) => e.stopPropagation()}
+  >
       {children}
     </div>
   )

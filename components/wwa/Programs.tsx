@@ -211,7 +211,7 @@ export default function Programs() {
         <div id="financial-aid" className="mt-6 flex flex-wrap items-center justify-center gap-3 text-muted-foreground text-sm">
           <span>Housing, tools, and materials included in all programs.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
-          <span>Financial aid available for qualified applicants.</span>
+          <span>Financing options may be available.</span>
           <span className="w-1 h-1 bg-muted-foreground rounded-full" />
           <button
             onClick={() => focusMia({ jumpToConcern: true, prefillConcern: "Cost — can I afford it?" })}
