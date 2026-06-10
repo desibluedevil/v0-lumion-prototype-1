@@ -516,12 +516,12 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     }
   }
 
-  function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behavior: ScrollBehavior = "smooth") {
-    const container = scrollRef.current
-    const anchor = anchorRef.current
-    if (!container || !anchor) return
-    const anchorTop = anchor.offsetTop
-    container.scrollTo({ top: anchorTop, behavior })
+function scrollToAnchor(anchorRef: React.RefObject<HTMLDivElement | null>, behavior: ScrollBehavior = "smooth", offsetPx = 0) {
+  const container = scrollRef.current
+  const anchor = anchorRef.current
+  if (!container || !anchor) return
+  const anchorTop = Math.max(0, anchor.offsetTop - offsetPx)
+  container.scrollTo({ top: anchorTop, behavior })
   }
 
   function scrollToBottom(behavior: ScrollBehavior = "smooth") {
@@ -534,20 +534,13 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     setMessages((prev) => [...prev, { role: "user", text: "Yes — show me the summary" }])
     setPhase("summary")
     setGroundedReady(false)
-    // Double rAF lets React paint the FitSummaryCard before we measure scrollHeight.
-    // Then scroll all the way to the top so the card title is the first thing visible.
+    // Double rAF lets React paint the FitSummaryCard before we measure offsets.
+    // Scroll to the "Yes — show me the summary" anchor so the card title ("Your Fit Summary")
+    // is the first thing visible in the scroll area.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const el = scrollRef.current
-        if (!el) return
-        // Scroll to position of the anchor (start of summary user bubble) so content begins at top
-        scrollToAnchor(summaryAnchorRef, "smooth")
-        // Then after another frame let the full card render and scroll to show it fully
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            scrollToBottom("smooth")
-          })
-        })
+        // Offset by 8px so the "Your Fit Summary" heading is fully in view
+        scrollToAnchor(summaryAnchorRef, "smooth", 8)
       })
     })
   }
@@ -673,7 +666,6 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
     return (
       <PanelShell compact={compact}>
         <PanelHeader onReset={resetFlow} onClose={onClose} phase="capture" />
-        <StepProgress stepIndex={stepIndex} phase={phase} answersCount={answers.length} />
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 bg-white">
           <MiaBubble text="Last step. I'll send your fit summary to the right enrollment advisor — they'll follow up within one business day." />
 
@@ -849,8 +841,9 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
                 are naturally at the bottom of the scroll area — MutationObserver
                 auto-scrolls to show them as they arrive. */}
             {messages.length > 0 && messages.map((msg, i) => {
-              const nextMsg = messages[i + 1]
-              const isLast = !nextMsg || nextMsg.role !== msg.role
+              // Skip "status" pills when deciding whether this is the last in a run of same-role messages
+              const nextNonStatus = messages.slice(i + 1).find((m) => m.role !== "status")
+              const isLast = !nextNonStatus || nextNonStatus.role !== msg.role
               return msg.role === "mia" ? (
                 <MiaBubble key={i} text={msg.text} isLast={isLast} />
               ) : msg.role === "status" ? (
@@ -863,8 +856,8 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
         ) : (
           <>
             {messages.map((msg, i) => {
-              const nextMsg = messages[i + 1]
-              const isLast = !nextMsg || nextMsg.role !== msg.role
+              const nextNonStatus = messages.slice(i + 1).find((m) => m.role !== "status")
+              const isLast = !nextNonStatus || nextNonStatus.role !== msg.role
               return msg.role === "mia" ? (
                 <MiaBubble key={i} text={msg.text} isLast={isLast} />
               ) : msg.role === "status" ? (
@@ -1011,7 +1004,7 @@ export default function MiaPanel({ compact = false, onClose }: { compact?: boole
               type="text"
               value={freeInput}
               onChange={(e) => setFreeInput(e.target.value)}
-              placeholder="Ask a question..."
+              placeholder={phase === "idle" ? "Ask Mia a question..." : "Ask a follow-up question..."}
               disabled={freeAnswering}
               className="flex-1 min-w-0 bg-transparent text-sm text-[#111111] placeholder:text-[#999999] focus:outline-none disabled:opacity-50"
               style={{ fontFamily: "var(--font-inter), sans-serif" }}
